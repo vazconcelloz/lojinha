@@ -16,7 +16,9 @@ public class StockService
     {
         return _context.StockLots
             .Where(l => l.ProductId == productId)
-            .Sum(l => l.QuantidadeRestante);
+            .Select(l => l.QuantidadeRestante)
+            .AsEnumerable()
+            .Sum();
     }
 
     public StockLot AddLot(int productId, decimal quantidade, DateTime? dataValidade, int? supplierId)

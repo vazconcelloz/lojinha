@@ -34,13 +34,13 @@ public class StockServiceTests : IDisposable
         _connection.Dispose();
     }
 
-    private Product CreateProduct(decimal estoqueMinimo = 0)
+    private Product CreateProduct(decimal estoqueMinimo = 0, string codigoBarras = "789000000001")
     {
         var category = new Category { Nome = "Bebidas" };
         var product = new Product
         {
             Nome = "Coca-Cola 2L",
-            CodigoBarras = "789000000001",
+            CodigoBarras = codigoBarras,
             Category = category,
             TipoVenda = TipoVenda.Unidade,
             PrecoCusto = 5,
@@ -91,9 +91,7 @@ public class StockServiceTests : IDisposable
         var lowProduct = CreateProduct(estoqueMinimo: 10);
         _service.AddLot(lowProduct.Id, quantidade: 3, dataValidade: null, supplierId: null);
 
-        var okProduct = CreateProduct(estoqueMinimo: 10);
-        okProduct.CodigoBarras = "789000000002";
-        _context.SaveChanges();
+        var okProduct = CreateProduct(estoqueMinimo: 10, codigoBarras: "789000000002");
         _service.AddLot(okProduct.Id, quantidade: 15, dataValidade: null, supplierId: null);
 
         var lowStock = _service.GetLowStockProducts();
