@@ -1,0 +1,64 @@
+using Lojinha.Data;
+using Lojinha.Data.Models;
+
+namespace Lojinha.Services;
+
+public class ProductService
+{
+    private readonly LojinhaDbContext _context;
+
+    public ProductService(LojinhaDbContext context)
+    {
+        _context = context;
+    }
+
+    public Product Add(string nome, string codigoBarras, int categoryId, TipoVenda tipoVenda, decimal precoCusto, decimal precoVenda, decimal estoqueMinimo)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            throw new ArgumentException("Nome é obrigatório.", nameof(nome));
+        }
+
+        if (precoVenda <= 0)
+        {
+            throw new ArgumentException("Preço de venda deve ser maior que zero.", nameof(precoVenda));
+        }
+
+        if (_context.Products.Any(p => p.CodigoBarras == codigoBarras))
+        {
+            throw new InvalidOperationException($"Já existe um produto com o código de barras '{codigoBarras}'.");
+        }
+
+        var product = new Product
+        {
+            Nome = nome,
+            CodigoBarras = codigoBarras,
+            CategoryId = categoryId,
+            TipoVenda = tipoVenda,
+            PrecoCusto = precoCusto,
+            PrecoVenda = precoVenda,
+            EstoqueMinimo = estoqueMinimo
+        };
+
+        _context.Products.Add(product);
+        _context.SaveChanges();
+        return product;
+    }
+
+    public IEnumerable<Product> GetAll()
+    {
+        return _context.Products.ToList();
+    }
+
+    public IEnumerable<Product> Search(string termo)
+    {
+        if (string.IsNullOrWhiteSpace(termo))
+        {
+            return GetAll();
+        }
+
+        return _context.Products
+            .Where(p => p.Nome.Contains(termo) || p.CodigoBarras.Contains(termo))
+            .ToList();
+    }
+}
