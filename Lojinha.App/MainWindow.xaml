@@ -1,12 +1,21 @@
-﻿<Window x:Class="Lojinha.App.MainWindow"
+<Window x:Class="Lojinha.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Lojinha.App"
+        xmlns:views="clr-namespace:Lojinha.App.Views"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-
-    </Grid>
+        Title="Lojinha - Cadastro" Height="600" Width="950">
+    <TabControl Margin="8">
+        <TabItem Header="Categorias">
+            <views:CategoriaView DataContext="{Binding Categorias}" />
+        </TabItem>
+        <TabItem Header="Fornecedores">
+            <views:FornecedorView DataContext="{Binding Fornecedores}" />
+        </TabItem>
+        <TabItem Header="Produtos">
+            <views:ProdutoView DataContext="{Binding Produtos}" />
+        </TabItem>
+    </TabControl>
 </Window>
