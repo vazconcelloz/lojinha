@@ -11,6 +11,7 @@ public class LojinhaDbContext : DbContext
     public DbSet<StockLot> StockLots => Set<StockLot>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleItem> SaleItems => Set<SaleItem>();
+    public DbSet<User> Users => Set<User>();
 
     public LojinhaDbContext(DbContextOptions<LojinhaDbContext> options) : base(options)
     {
@@ -83,5 +84,9 @@ public class LojinhaDbContext : DbContext
             .WithMany()
             .HasForeignKey(i => i.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.NomeUsuario)
+            .IsUnique();
     }
 }

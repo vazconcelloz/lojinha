@@ -8,6 +8,7 @@ public class Sale
     public decimal Total { get; set; }
     public bool Cancelada { get; set; }
     public DateTime? DataCancelamento { get; set; }
+    public string? UsuarioNome { get; set; }
 
     public ICollection<SaleItem> Items { get; set; } = new List<SaleItem>();
 }
