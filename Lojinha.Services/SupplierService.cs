@@ -25,6 +25,24 @@ public class SupplierService
         return supplier;
     }
 
+    public void Update(int id, string nome, string? contato)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            throw new ArgumentException("Nome é obrigatório.", nameof(nome));
+        }
+
+        var supplier = _context.Suppliers.Find(id);
+        if (supplier is null)
+        {
+            throw new InvalidOperationException("Fornecedor não encontrado.");
+        }
+
+        supplier.Nome = nome;
+        supplier.Contato = contato;
+        _context.SaveChanges();
+    }
+
     public void Delete(int id)
     {
         var supplier = _context.Suppliers.Find(id);

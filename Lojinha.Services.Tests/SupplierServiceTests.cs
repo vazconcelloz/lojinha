@@ -59,4 +59,30 @@ public class SupplierServiceTests : IDisposable
 
         Assert.Empty(_service.GetAll());
     }
+
+    [Fact]
+    public void Update_ChangesNameAndContact()
+    {
+        var supplier = _service.Add("Padaria Insumos LTDA", "(11) 99999-0000");
+
+        _service.Update(supplier.Id, "Padaria Insumos ME", "(11) 98888-1111");
+
+        var atualizado = _service.GetAll().First();
+        Assert.Equal("Padaria Insumos ME", atualizado.Nome);
+        Assert.Equal("(11) 98888-1111", atualizado.Contato);
+    }
+
+    [Fact]
+    public void Update_ThrowsWhenSupplierNotFound()
+    {
+        Assert.Throws<InvalidOperationException>(() => _service.Update(999, "Nome", null));
+    }
+
+    [Fact]
+    public void Update_ThrowsWhenNameIsEmpty()
+    {
+        var supplier = _service.Add("Padaria Insumos LTDA", null);
+
+        Assert.Throws<ArgumentException>(() => _service.Update(supplier.Id, "", null));
+    }
 }
