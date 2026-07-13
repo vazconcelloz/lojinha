@@ -21,6 +21,11 @@ public partial class CategoryViewModel : ObservableObject
     [ObservableProperty]
     private string novoNome = string.Empty;
 
+    [ObservableProperty]
+    private int? editandoId;
+
+    public bool EmEdicao => EditandoId is not null;
+
     public CategoryViewModel(CategoryService service, ISnackbarService snackbar, IContentDialogService dialogService)
     {
         _service = service;
@@ -43,6 +48,11 @@ public partial class CategoryViewModel : ObservableObject
         }
     }
 
+    partial void OnEditandoIdChanged(int? value)
+    {
+        OnPropertyChanged(nameof(EmEdicao));
+    }
+
     [RelayCommand]
     private void Adicionar()
     {
@@ -57,6 +67,42 @@ public partial class CategoryViewModel : ObservableObject
         {
             _snackbar.Show("Erro", ex.Message, ControlAppearance.Danger);
         }
+    }
+
+    [RelayCommand]
+    private void Editar(Category categoria)
+    {
+        EditandoId = categoria.Id;
+        NovoNome = categoria.Nome;
+    }
+
+    [RelayCommand]
+    private void Salvar()
+    {
+        if (EditandoId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _service.Update(EditandoId.Value, NovoNome);
+            NovoNome = string.Empty;
+            EditandoId = null;
+            Carregar();
+            _snackbar.Show("Sucesso", "Categoria atualizada.", ControlAppearance.Success);
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Show("Erro", ex.Message, ControlAppearance.Danger);
+        }
+    }
+
+    [RelayCommand]
+    private void Cancelar()
+    {
+        NovoNome = string.Empty;
+        EditandoId = null;
     }
 
     [RelayCommand]
