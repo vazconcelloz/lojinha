@@ -3,26 +3,48 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              mc:Ignorable="d">
-    <Grid Margin="16">
+    <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBox Width="260" Text="{Binding NovoNome, UpdateSourceTrigger=PropertyChanged}" />
-            <Button Content="Adicionar" Margin="8,0,0,0" Padding="12,4" Command="{Binding AdicionarCommand}" />
-        </StackPanel>
+        <ui:Card Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal">
+                <ui:TextBox Width="280" PlaceholderText="Nome da categoria"
+                            Text="{Binding NovoNome, UpdateSourceTrigger=PropertyChanged}" />
+                <ui:Button Content="Adicionar" Margin="12,0,0,0" Appearance="Primary"
+                           Icon="{ui:SymbolIcon Symbol=Add24}"
+                           Command="{Binding AdicionarCommand}" />
+            </StackPanel>
+        </ui:Card>
 
-        <TextBlock Grid.Row="1" Text="{Binding MensagemErro}" Foreground="Red" Margin="0,0,0,8" />
+        <Grid Grid.Row="1">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                        Visibility="{Binding Categorias.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                <ui:SymbolIcon Symbol="Tag24" FontSize="48" HorizontalAlignment="Center" Opacity="0.5" />
+                <TextBlock Text="Nenhuma categoria cadastrada ainda" Margin="0,8,0,0" Opacity="0.7"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
 
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Categorias}" AutoGenerateColumns="False" IsReadOnly="True">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="60" />
-                <DataGridTextColumn Header="Nome" Binding="{Binding Nome}" Width="*" />
-            </DataGrid.Columns>
-        </DataGrid>
+            <DataGrid ItemsSource="{Binding Categorias}" AutoGenerateColumns="False" IsReadOnly="True"
+                      Visibility="{Binding Categorias.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Invert}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="60" />
+                    <DataGridTextColumn Header="Nome" Binding="{Binding Nome}" Width="*" />
+                    <DataGridTemplateColumn Header="" Width="60">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ui:Button Appearance="Danger" Icon="{ui:SymbolIcon Symbol=Delete24}"
+                                           Command="{Binding DataContext.ExcluirCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                           CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
     </Grid>
 </UserControl>
