@@ -113,6 +113,40 @@ public partial class SalesViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void Escanear()
+    {
+        var codigo = TermoBusca.Trim();
+        if (string.IsNullOrEmpty(codigo))
+        {
+            return;
+        }
+
+        var produto = _productService.GetAll().FirstOrDefault(p => p.CodigoBarras == codigo);
+        if (produto is null)
+        {
+            _snackbar.Show("Erro", "Produto não encontrado.", ControlAppearance.Danger);
+            TermoBusca = string.Empty;
+            return;
+        }
+
+        var quantidadeAdicionar = Quantidade > 0 ? Quantidade : 1;
+
+        var itemExistente = Carrinho.FirstOrDefault(i => i.ProductId == produto.Id);
+        if (itemExistente is not null)
+        {
+            var index = Carrinho.IndexOf(itemExistente);
+            Carrinho[index] = itemExistente with { Quantidade = itemExistente.Quantidade + quantidadeAdicionar };
+        }
+        else
+        {
+            Carrinho.Add(new ItemCarrinho(produto.Id, produto.Nome, quantidadeAdicionar, produto.PrecoVenda));
+        }
+
+        TermoBusca = string.Empty;
+        Quantidade = 0;
+    }
+
+    [RelayCommand]
     private void RemoverDoCarrinho(ItemCarrinho item)
     {
         Carrinho.Remove(item);

@@ -15,7 +15,11 @@
                     <TextBlock Text="Nova venda" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
                     <WrapPanel>
                         <ui:TextBox Width="220" Margin="0,0,8,8" PlaceholderText="Buscar produto (nome ou código)"
-                                    Text="{Binding TermoBusca, UpdateSourceTrigger=PropertyChanged}" />
+                                    Text="{Binding TermoBusca, UpdateSourceTrigger=PropertyChanged}">
+                            <ui:TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding EscanearCommand}" />
+                            </ui:TextBox.InputBindings>
+                        </ui:TextBox>
                         <ComboBox Width="220" Margin="0,0,8,8" ItemsSource="{Binding Produtos}" DisplayMemberPath="Nome"
                                   SelectedItem="{Binding ProdutoSelecionado}" />
                         <ui:TextBox Width="120" Margin="0,0,8,8" PlaceholderText="Quantidade"
