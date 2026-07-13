@@ -1,4 +1,5 @@
 using Lojinha.Data;
+using Lojinha.Data.Models;
 using Lojinha.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -47,5 +48,34 @@ public class CategoryServiceTests : IDisposable
     public void Add_ThrowsWhenNameIsEmpty()
     {
         Assert.Throws<ArgumentException>(() => _service.Add(""));
+    }
+
+    [Fact]
+    public void Delete_RemovesCategoryWithoutProducts()
+    {
+        var category = _service.Add("Bebidas");
+
+        _service.Delete(category.Id);
+
+        Assert.Empty(_service.GetAll());
+    }
+
+    [Fact]
+    public void Delete_ThrowsWhenCategoryHasProducts()
+    {
+        var category = _service.Add("Bebidas");
+        _context.Products.Add(new Product
+        {
+            Nome = "Coca-Cola 2L",
+            CodigoBarras = "789000000001",
+            CategoryId = category.Id,
+            TipoVenda = TipoVenda.Unidade,
+            PrecoCusto = 5,
+            PrecoVenda = 8,
+            EstoqueMinimo = 10
+        });
+        _context.SaveChanges();
+
+        Assert.Throws<InvalidOperationException>(() => _service.Delete(category.Id));
     }
 }

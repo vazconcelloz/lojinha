@@ -25,6 +25,23 @@ public class CategoryService
         return category;
     }
 
+    public void Delete(int id)
+    {
+        var category = _context.Categories.Find(id);
+        if (category is null)
+        {
+            throw new InvalidOperationException("Categoria não encontrada.");
+        }
+
+        if (_context.Products.Any(p => p.CategoryId == id))
+        {
+            throw new InvalidOperationException("Categoria possui produtos vinculados e não pode ser excluída.");
+        }
+
+        _context.Categories.Remove(category);
+        _context.SaveChanges();
+    }
+
     public IEnumerable<Category> GetAll()
     {
         return _context.Categories.ToList();
