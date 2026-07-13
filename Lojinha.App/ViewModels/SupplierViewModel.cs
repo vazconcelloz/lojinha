@@ -24,6 +24,11 @@ public partial class SupplierViewModel : ObservableObject
     [ObservableProperty]
     private string? novoContato;
 
+    [ObservableProperty]
+    private int? editandoId;
+
+    public bool EmEdicao => EditandoId is not null;
+
     public SupplierViewModel(SupplierService service, ISnackbarService snackbar, IContentDialogService dialogService)
     {
         _service = service;
@@ -46,6 +51,11 @@ public partial class SupplierViewModel : ObservableObject
         }
     }
 
+    partial void OnEditandoIdChanged(int? value)
+    {
+        OnPropertyChanged(nameof(EmEdicao));
+    }
+
     [RelayCommand]
     private void Adicionar()
     {
@@ -61,6 +71,45 @@ public partial class SupplierViewModel : ObservableObject
         {
             _snackbar.Show("Erro", ex.Message, ControlAppearance.Danger);
         }
+    }
+
+    [RelayCommand]
+    private void Editar(Supplier fornecedor)
+    {
+        EditandoId = fornecedor.Id;
+        NovoNome = fornecedor.Nome;
+        NovoContato = fornecedor.Contato;
+    }
+
+    [RelayCommand]
+    private void Salvar()
+    {
+        if (EditandoId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _service.Update(EditandoId.Value, NovoNome, NovoContato);
+            NovoNome = string.Empty;
+            NovoContato = null;
+            EditandoId = null;
+            Carregar();
+            _snackbar.Show("Sucesso", "Fornecedor atualizado.", ControlAppearance.Success);
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Show("Erro", ex.Message, ControlAppearance.Danger);
+        }
+    }
+
+    [RelayCommand]
+    private void Cancelar()
+    {
+        NovoNome = string.Empty;
+        NovoContato = null;
+        EditandoId = null;
     }
 
     [RelayCommand]
