@@ -45,6 +45,11 @@ public partial class ProductViewModel : ObservableObject
     [ObservableProperty]
     private string termoBusca = string.Empty;
 
+    [ObservableProperty]
+    private int? editandoId;
+
+    public bool EmEdicao => EditandoId is not null;
+
     public ProductViewModel(ProductService productService, CategoryService categoryService, ISnackbarService snackbar, IContentDialogService dialogService)
     {
         _productService = productService;
@@ -81,6 +86,11 @@ public partial class ProductViewModel : ObservableObject
         Buscar();
     }
 
+    partial void OnEditandoIdChanged(int? value)
+    {
+        OnPropertyChanged(nameof(EmEdicao));
+    }
+
     [RelayCommand]
     private void Buscar()
     {
@@ -103,11 +113,7 @@ public partial class ProductViewModel : ObservableObject
         try
         {
             _productService.Add(Nome, CodigoBarras, CategoriaSelecionada.Id, TipoVendaSelecionado, PrecoCusto, PrecoVenda, EstoqueMinimo);
-            Nome = string.Empty;
-            CodigoBarras = string.Empty;
-            PrecoCusto = 0;
-            PrecoVenda = 0;
-            EstoqueMinimo = 0;
+            LimparFormulario();
             Buscar();
             _snackbar.Show("Sucesso", "Produto adicionado.", ControlAppearance.Success);
         }
@@ -115,6 +121,63 @@ public partial class ProductViewModel : ObservableObject
         {
             _snackbar.Show("Erro", ex.Message, ControlAppearance.Danger);
         }
+    }
+
+    [RelayCommand]
+    private void Editar(Product produto)
+    {
+        EditandoId = produto.Id;
+        Nome = produto.Nome;
+        CodigoBarras = produto.CodigoBarras;
+        CategoriaSelecionada = Categorias.FirstOrDefault(c => c.Id == produto.CategoryId);
+        TipoVendaSelecionado = produto.TipoVenda;
+        PrecoCusto = produto.PrecoCusto;
+        PrecoVenda = produto.PrecoVenda;
+        EstoqueMinimo = produto.EstoqueMinimo;
+    }
+
+    [RelayCommand]
+    private void Salvar()
+    {
+        if (EditandoId is null)
+        {
+            return;
+        }
+
+        if (CategoriaSelecionada is null)
+        {
+            _snackbar.Show("Erro", "Selecione uma categoria.", ControlAppearance.Danger);
+            return;
+        }
+
+        try
+        {
+            _productService.Update(EditandoId.Value, Nome, CodigoBarras, CategoriaSelecionada.Id, TipoVendaSelecionado, PrecoCusto, PrecoVenda, EstoqueMinimo);
+            EditandoId = null;
+            LimparFormulario();
+            Buscar();
+            _snackbar.Show("Sucesso", "Produto atualizado.", ControlAppearance.Success);
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Show("Erro", ex.Message, ControlAppearance.Danger);
+        }
+    }
+
+    [RelayCommand]
+    private void Cancelar()
+    {
+        EditandoId = null;
+        LimparFormulario();
+    }
+
+    private void LimparFormulario()
+    {
+        Nome = string.Empty;
+        CodigoBarras = string.Empty;
+        PrecoCusto = 0;
+        PrecoVenda = 0;
+        EstoqueMinimo = 0;
     }
 
     [RelayCommand]

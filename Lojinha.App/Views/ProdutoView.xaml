@@ -32,7 +32,14 @@
                     <ui:TextBox Width="110" Margin="0,0,8,8" PlaceholderText="Estoque mínimo"
                                 Text="{Binding EstoqueMinimo, UpdateSourceTrigger=PropertyChanged}" />
                     <ui:Button Content="Adicionar" Appearance="Primary" Icon="{ui:SymbolIcon Symbol=Add24}"
+                               Visibility="{Binding EmEdicao, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}"
                                Command="{Binding AdicionarCommand}" />
+                    <ui:Button Content="Salvar" Appearance="Primary" Icon="{ui:SymbolIcon Symbol=Save24}"
+                               Visibility="{Binding EmEdicao, Converter={StaticResource BooleanToVisibilityConverter}}"
+                               Command="{Binding SalvarCommand}" />
+                    <ui:Button Content="Cancelar" Margin="8,0,0,0" Icon="{ui:SymbolIcon Symbol=Dismiss24}"
+                               Visibility="{Binding EmEdicao, Converter={StaticResource BooleanToVisibilityConverter}}"
+                               Command="{Binding CancelarCommand}" />
                 </WrapPanel>
             </StackPanel>
         </ui:Card>
@@ -59,12 +66,17 @@
                     <DataGridTextColumn Header="Custo" Binding="{Binding PrecoCusto}" Width="80" />
                     <DataGridTextColumn Header="Venda" Binding="{Binding PrecoVenda}" Width="80" />
                     <DataGridTextColumn Header="Est. Mín." Binding="{Binding EstoqueMinimo}" Width="80" />
-                    <DataGridTemplateColumn Header="" Width="60">
+                    <DataGridTemplateColumn Header="" Width="110">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <ui:Button Appearance="Danger" Icon="{ui:SymbolIcon Symbol=Delete24}"
-                                           Command="{Binding DataContext.ExcluirCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                           CommandParameter="{Binding}" />
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:Button Icon="{ui:SymbolIcon Symbol=Edit24}"
+                                               Command="{Binding DataContext.EditarCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                               CommandParameter="{Binding}" />
+                                    <ui:Button Appearance="Danger" Margin="4,0,0,0" Icon="{ui:SymbolIcon Symbol=Delete24}"
+                                               Command="{Binding DataContext.ExcluirCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                               CommandParameter="{Binding}" />
+                                </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
