@@ -7,13 +7,15 @@ public class MainViewModel
     public ProductViewModel Produtos { get; }
     public StockViewModel Estoque { get; }
     public SalesViewModel Vendas { get; }
+    public UserViewModel Usuarios { get; }
 
-    public MainViewModel(CategoryViewModel categorias, SupplierViewModel fornecedores, ProductViewModel produtos, StockViewModel estoque, SalesViewModel vendas)
+    public MainViewModel(CategoryViewModel categorias, SupplierViewModel fornecedores, ProductViewModel produtos, StockViewModel estoque, SalesViewModel vendas, UserViewModel usuarios)
     {
         Categorias = categorias;
         Fornecedores = fornecedores;
         Produtos = produtos;
         Estoque = estoque;
         Vendas = vendas;
+        Usuarios = usuarios;
     }
 }

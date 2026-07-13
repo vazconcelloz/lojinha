@@ -15,6 +15,7 @@ public partial class MainWindow : FluentWindow
     private readonly ProdutoView _produtoView = new();
     private readonly EstoqueView _estoqueView = new();
     private readonly VendaView _vendaView = new();
+    private readonly UsuarioView _usuarioView = new();
 
     public MainWindow(MainViewModel viewModel, ISnackbarService snackbarService, IContentDialogService contentDialogService)
     {
@@ -40,6 +41,7 @@ public partial class MainWindow : FluentWindow
         ProdutosItem.IsActive = tag == "produtos";
         EstoqueItem.IsActive = tag == "estoque";
         VendasItem.IsActive = tag == "vendas";
+        UsuariosItem.IsActive = tag == "usuarios";
 
         NavigateTo(tag);
     }
@@ -53,6 +55,7 @@ public partial class MainWindow : FluentWindow
             "produtos" => ((FrameworkElement)_produtoView, (object)_viewModel.Produtos),
             "estoque" => ((FrameworkElement)_estoqueView, (object)_viewModel.Estoque),
             "vendas" => ((FrameworkElement)_vendaView, (object)_viewModel.Vendas),
+            "usuarios" => ((FrameworkElement)_usuarioView, (object)_viewModel.Usuarios),
             _ => ((FrameworkElement)_categoriaView, (object)_viewModel.Categorias)
         };
 
@@ -80,6 +83,9 @@ public partial class MainWindow : FluentWindow
                 break;
             case "vendas":
                 _viewModel.Vendas.Refresh();
+                break;
+            case "usuarios":
+                _viewModel.Usuarios.Refresh();
                 break;
             default:
                 _viewModel.Categorias.Refresh();

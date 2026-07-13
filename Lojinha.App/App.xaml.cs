@@ -75,6 +75,7 @@ public partial class App : Application
         services.AddScoped<ProductViewModel>();
         services.AddScoped<StockViewModel>();
         services.AddScoped<SalesViewModel>();
+        services.AddScoped<UserViewModel>();
         services.AddScoped<MainViewModel>();
 
         services.AddTransient<LoginViewModel>();
