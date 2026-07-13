@@ -5,6 +5,7 @@ using Lojinha.Data;
 using Lojinha.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Wpf.Ui;
 
 namespace Lojinha.App;
 
@@ -41,6 +42,9 @@ public partial class App : Application
         var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "lojinha.db");
 
         services.AddDbContext<LojinhaDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
+
+        services.AddSingleton<ISnackbarService, SnackbarService>();
+        services.AddSingleton<IContentDialogService, ContentDialogService>();
 
         services.AddScoped<CategoryService>();
         services.AddScoped<SupplierService>();
