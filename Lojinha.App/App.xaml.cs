@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using Lojinha.App.Services;
 using Lojinha.App.ViewModels;
 using Lojinha.Data;
 using Lojinha.Services;
@@ -45,6 +46,7 @@ public partial class App : Application
 
         services.AddSingleton<ISnackbarService, SnackbarService>();
         services.AddSingleton<IContentDialogService, ContentDialogService>();
+        services.AddSingleton<SessionService>();
 
         services.AddScoped<CategoryService>();
         services.AddScoped<SupplierService>();
