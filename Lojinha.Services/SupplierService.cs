@@ -25,6 +25,18 @@ public class SupplierService
         return supplier;
     }
 
+    public void Delete(int id)
+    {
+        var supplier = _context.Suppliers.Find(id);
+        if (supplier is null)
+        {
+            throw new InvalidOperationException("Fornecedor não encontrado.");
+        }
+
+        _context.Suppliers.Remove(supplier);
+        _context.SaveChanges();
+    }
+
     public IEnumerable<Supplier> GetAll()
     {
         return _context.Suppliers.ToList();

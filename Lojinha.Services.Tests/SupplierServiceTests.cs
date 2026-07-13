@@ -49,4 +49,14 @@ public class SupplierServiceTests : IDisposable
     {
         Assert.Throws<ArgumentException>(() => _service.Add("", null));
     }
+
+    [Fact]
+    public void Delete_RemovesSupplier()
+    {
+        var supplier = _service.Add("Padaria Insumos LTDA", null);
+
+        _service.Delete(supplier.Id);
+
+        Assert.Empty(_service.GetAll());
+    }
 }
