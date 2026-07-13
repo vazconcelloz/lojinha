@@ -50,11 +50,13 @@ public partial class App : Application
         services.AddScoped<SupplierService>();
         services.AddScoped<ProductService>();
         services.AddScoped<StockService>();
+        services.AddScoped<SalesService>();
 
         services.AddScoped<CategoryViewModel>();
         services.AddScoped<SupplierViewModel>();
         services.AddScoped<ProductViewModel>();
         services.AddScoped<StockViewModel>();
+        services.AddScoped<SalesViewModel>();
         services.AddScoped<MainViewModel>();
 
         services.AddTransient<MainWindow>();

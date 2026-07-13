@@ -1,0 +1,103 @@
+<UserControl x:Class="Lojinha.App.Views.VendaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             mc:Ignorable="d">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    <ScrollViewer Margin="20" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <ui:Card Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Nova venda" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
+                    <WrapPanel>
+                        <ui:TextBox Width="220" Margin="0,0,8,8" PlaceholderText="Buscar produto (nome ou código)"
+                                    Text="{Binding TermoBusca, UpdateSourceTrigger=PropertyChanged}" />
+                        <ComboBox Width="220" Margin="0,0,8,8" ItemsSource="{Binding Produtos}" DisplayMemberPath="Nome"
+                                  SelectedItem="{Binding ProdutoSelecionado}" />
+                        <ui:TextBox Width="120" Margin="0,0,8,8" PlaceholderText="Quantidade"
+                                    Text="{Binding Quantidade, UpdateSourceTrigger=PropertyChanged}" />
+                        <ui:Button Content="Adicionar ao carrinho" Appearance="Primary" Icon="{ui:SymbolIcon Symbol=Add24}"
+                                   Command="{Binding AdicionarAoCarrinhoCommand}" />
+                    </WrapPanel>
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Carrinho" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
+                    <StackPanel Visibility="{Binding Carrinho.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                        <TextBlock Text="Carrinho vazio." Opacity="0.7" />
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding Carrinho}" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="200"
+                              Visibility="{Binding Carrinho.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Invert}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Produto" Binding="{Binding Produto}" Width="*" />
+                            <DataGridTextColumn Header="Quantidade" Binding="{Binding Quantidade}" Width="100" />
+                            <DataGridTextColumn Header="Preço unit." Binding="{Binding PrecoUnitario}" Width="100" />
+                            <DataGridTextColumn Header="Subtotal" Binding="{Binding Subtotal}" Width="100" />
+                            <DataGridTemplateColumn Header="" Width="60">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ui:Button Appearance="Danger" Icon="{ui:SymbolIcon Symbol=Delete24}"
+                                                   Command="{Binding DataContext.RemoverDoCarrinhoCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                   CommandParameter="{Binding}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <WrapPanel Margin="0,12,0,0">
+                        <ComboBox Width="160" Margin="0,0,8,0" ItemsSource="{Binding FormasPagamento}"
+                                  SelectedItem="{Binding FormaPagamentoSelecionada}" />
+                        <TextBlock Text="{Binding Total, StringFormat='Total: {0:C}'}" FontWeight="Bold" FontSize="16"
+                                   VerticalAlignment="Center" Margin="12,0,0,0" />
+                        <ui:Button Content="Finalizar venda" Appearance="Primary" Margin="12,0,0,0"
+                                   Icon="{ui:SymbolIcon Symbol=ReceiptMoney24}"
+                                   Command="{Binding FinalizarVendaCommand}" />
+                    </WrapPanel>
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card>
+                <StackPanel>
+                    <TextBlock Text="Histórico de vendas" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
+                    <StackPanel Visibility="{Binding Historico.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                        <TextBlock Text="Nenhuma venda registrada ainda." Opacity="0.7" />
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding Historico}" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="240"
+                              Visibility="{Binding Historico.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Invert}">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Cancelada}" Value="True">
+                                        <Setter Property="Foreground" Value="Gray" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Data" Binding="{Binding DataHora, StringFormat='dd/MM/yyyy HH:mm'}" Width="140" />
+                            <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat=C}" Width="100" />
+                            <DataGridTextColumn Header="Pagamento" Binding="{Binding FormaPagamento}" Width="100" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" />
+                            <DataGridTemplateColumn Header="" Width="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ui:Button Content="Cancelar" Appearance="Danger" Icon="{ui:SymbolIcon Symbol=Dismiss24}"
+                                                   Visibility="{Binding PodeCancelar, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                   Command="{Binding DataContext.CancelarVendaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                   CommandParameter="{Binding}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </ui:Card>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
