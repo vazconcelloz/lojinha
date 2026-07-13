@@ -27,7 +27,22 @@ public partial class App : Application
         var context = _scope.ServiceProvider.GetRequiredService<LojinhaDbContext>();
         context.Database.Migrate();
 
+        MostrarLoginEEntrar();
+    }
+
+    private void MostrarLoginEEntrar()
+    {
+        var loginWindow = _scope!.ServiceProvider.GetRequiredService<LoginWindow>();
+        var loginOk = loginWindow.ShowDialog();
+
+        if (loginOk != true)
+        {
+            Shutdown();
+            return;
+        }
+
         var mainWindow = _scope.ServiceProvider.GetRequiredService<MainWindow>();
+        Current.MainWindow = mainWindow;
         mainWindow.Show();
     }
 
@@ -53,6 +68,7 @@ public partial class App : Application
         services.AddScoped<ProductService>();
         services.AddScoped<StockService>();
         services.AddScoped<SalesService>();
+        services.AddScoped<UserService>();
 
         services.AddScoped<CategoryViewModel>();
         services.AddScoped<SupplierViewModel>();
@@ -61,6 +77,8 @@ public partial class App : Application
         services.AddScoped<SalesViewModel>();
         services.AddScoped<MainViewModel>();
 
+        services.AddTransient<LoginViewModel>();
+        services.AddTransient<LoginWindow>();
         services.AddTransient<MainWindow>();
     }
 }

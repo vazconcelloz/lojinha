@@ -1,0 +1,44 @@
+<ui:FluentWindow x:Class="Lojinha.App.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        mc:Ignorable="d"
+        Title="Lojinha" Height="360" Width="380"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="None">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="Lojinha" />
+
+        <StackPanel Grid.Row="1" VerticalAlignment="Center">
+            <TextBlock Text="Criar primeiro administrador"
+                       Visibility="{Binding PrimeiroAcesso, Converter={StaticResource BooleanToVisibilityConverter}}"
+                       FontWeight="Bold" FontSize="18" Margin="0,0,0,16" HorizontalAlignment="Center" />
+            <TextBlock Text="Entrar"
+                       Visibility="{Binding PrimeiroAcesso, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}"
+                       FontWeight="Bold" FontSize="18" Margin="0,0,0,16" HorizontalAlignment="Center" />
+
+            <ui:TextBox PlaceholderText="Nome de usuário" Margin="0,0,0,8"
+                        Text="{Binding NomeUsuario, UpdateSourceTrigger=PropertyChanged}" />
+            <ui:PasswordBox PlaceholderText="Senha" Margin="0,0,0,8"
+                            Password="{Binding Senha, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="{Binding MensagemErro}" Foreground="Red" Margin="0,0,0,8" TextWrapping="Wrap" />
+
+            <ui:Button Content="Criar administrador" Appearance="Primary" HorizontalAlignment="Stretch"
+                       Visibility="{Binding PrimeiroAcesso, Converter={StaticResource BooleanToVisibilityConverter}}"
+                       Command="{Binding EntrarCommand}" />
+            <ui:Button Content="Entrar" Appearance="Primary" HorizontalAlignment="Stretch"
+                       Visibility="{Binding PrimeiroAcesso, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}"
+                       Command="{Binding EntrarCommand}" />
+        </StackPanel>
+    </Grid>
+</ui:FluentWindow>
