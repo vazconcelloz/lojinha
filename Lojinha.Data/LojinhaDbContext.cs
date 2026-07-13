@@ -9,6 +9,8 @@ public class LojinhaDbContext : DbContext
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<StockLot> StockLots => Set<StockLot>();
+    public DbSet<Sale> Sales => Set<Sale>();
+    public DbSet<SaleItem> SaleItems => Set<SaleItem>();
 
     public LojinhaDbContext(DbContextOptions<LojinhaDbContext> options) : base(options)
     {
@@ -57,5 +59,29 @@ public class LojinhaDbContext : DbContext
             .WithMany(sup => sup.StockLots)
             .HasForeignKey(s => s.SupplierId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Sale>()
+            .Property(s => s.Total)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<SaleItem>()
+            .Property(i => i.Quantidade)
+            .HasPrecision(10, 3);
+
+        modelBuilder.Entity<SaleItem>()
+            .Property(i => i.PrecoUnitario)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<Sale>()
+            .HasMany(s => s.Items)
+            .WithOne(i => i.Sale)
+            .HasForeignKey(i => i.SaleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SaleItem>()
+            .HasOne(i => i.Product)
+            .WithMany()
+            .HasForeignKey(i => i.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

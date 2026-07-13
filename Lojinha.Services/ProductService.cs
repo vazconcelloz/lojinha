@@ -53,6 +53,11 @@ public class ProductService
             throw new InvalidOperationException("Produto não encontrado.");
         }
 
+        if (_context.SaleItems.Any(si => si.ProductId == id))
+        {
+            throw new InvalidOperationException("Produto possui vendas registradas e não pode ser excluído.");
+        }
+
         _context.Products.Remove(product);
         _context.SaveChanges();
     }

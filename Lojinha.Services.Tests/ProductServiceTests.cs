@@ -74,4 +74,16 @@ public class ProductServiceTests : IDisposable
 
         Assert.Empty(_service.GetAll());
     }
+
+    [Fact]
+    public void Delete_ThrowsWhenProductHasSales()
+    {
+        var product = _service.Add("Coca-Cola 2L", "789000000001", _category.Id, TipoVenda.Unidade, 5m, 8m, 10m);
+        var sale = new Sale { DataHora = DateTime.Now, FormaPagamento = FormaPagamento.Dinheiro, Total = 8m };
+        sale.Items.Add(new SaleItem { ProductId = product.Id, Quantidade = 1, PrecoUnitario = 8m });
+        _context.Sales.Add(sale);
+        _context.SaveChanges();
+
+        Assert.Throws<InvalidOperationException>(() => _service.Delete(product.Id));
+    }
 }
