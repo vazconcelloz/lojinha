@@ -87,4 +87,51 @@ public class ProductServiceTests : IDisposable
         var ex = Assert.Throws<InvalidOperationException>(() => _service.Delete(product.Id));
         Assert.Equal("Produto possui vendas registradas e não pode ser excluído.", ex.Message);
     }
+
+    [Fact]
+    public void Update_ChangesAllFields()
+    {
+        var product = _service.Add("Coca-Cola 2L", "789000000001", _category.Id, TipoVenda.Unidade, 5m, 8m, 10m);
+        var novaCategoria = new Category { Nome = "Refrigerantes" };
+        _context.Categories.Add(novaCategoria);
+        _context.SaveChanges();
+
+        _service.Update(product.Id, "Coca-Cola 2L Zero", "789000000002", novaCategoria.Id, TipoVenda.Peso, 6m, 9m, 12m);
+
+        var atualizado = _service.GetAll().First();
+        Assert.Equal("Coca-Cola 2L Zero", atualizado.Nome);
+        Assert.Equal("789000000002", atualizado.CodigoBarras);
+        Assert.Equal(novaCategoria.Id, atualizado.CategoryId);
+        Assert.Equal(TipoVenda.Peso, atualizado.TipoVenda);
+        Assert.Equal(6m, atualizado.PrecoCusto);
+        Assert.Equal(9m, atualizado.PrecoVenda);
+        Assert.Equal(12m, atualizado.EstoqueMinimo);
+    }
+
+    [Fact]
+    public void Update_ThrowsWhenProductNotFound()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            _service.Update(999, "Nome", "789000000001", _category.Id, TipoVenda.Unidade, 5m, 8m, 10m));
+    }
+
+    [Fact]
+    public void Update_ThrowsWhenBarcodeBelongsToAnotherProduct()
+    {
+        var product1 = _service.Add("Coca-Cola 2L", "789000000001", _category.Id, TipoVenda.Unidade, 5m, 8m, 10m);
+        _service.Add("Guaraná 2L", "789000000002", _category.Id, TipoVenda.Unidade, 4m, 7m, 10m);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _service.Update(product1.Id, "Coca-Cola 2L", "789000000002", _category.Id, TipoVenda.Unidade, 5m, 8m, 10m));
+    }
+
+    [Fact]
+    public void Update_AllowsSavingWithSameBarcode()
+    {
+        var product = _service.Add("Coca-Cola 2L", "789000000001", _category.Id, TipoVenda.Unidade, 5m, 8m, 10m);
+
+        _service.Update(product.Id, "Coca-Cola 2L Editado", "789000000001", _category.Id, TipoVenda.Unidade, 5m, 8m, 10m);
+
+        Assert.Equal("Coca-Cola 2L Editado", _service.GetAll().First().Nome);
+    }
 }

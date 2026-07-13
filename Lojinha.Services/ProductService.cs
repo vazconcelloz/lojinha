@@ -45,6 +45,39 @@ public class ProductService
         return product;
     }
 
+    public void Update(int id, string nome, string codigoBarras, int categoryId, TipoVenda tipoVenda, decimal precoCusto, decimal precoVenda, decimal estoqueMinimo)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            throw new ArgumentException("Nome é obrigatório.", nameof(nome));
+        }
+
+        if (precoVenda <= 0)
+        {
+            throw new ArgumentException("Preço de venda deve ser maior que zero.", nameof(precoVenda));
+        }
+
+        if (_context.Products.Any(p => p.CodigoBarras == codigoBarras && p.Id != id))
+        {
+            throw new InvalidOperationException($"Já existe um produto com o código de barras '{codigoBarras}'.");
+        }
+
+        var product = _context.Products.Find(id);
+        if (product is null)
+        {
+            throw new InvalidOperationException("Produto não encontrado.");
+        }
+
+        product.Nome = nome;
+        product.CodigoBarras = codigoBarras;
+        product.CategoryId = categoryId;
+        product.TipoVenda = tipoVenda;
+        product.PrecoCusto = precoCusto;
+        product.PrecoVenda = precoVenda;
+        product.EstoqueMinimo = estoqueMinimo;
+        _context.SaveChanges();
+    }
+
     public void Delete(int id)
     {
         var product = _context.Products.Find(id);
