@@ -63,11 +63,17 @@ public partial class ProductViewModel : ObservableObject
 
     private void CarregarCategorias()
     {
+        var categoriaSelecionadaId = CategoriaSelecionada?.Id;
+
         Categorias.Clear();
         foreach (var categoria in _categoryService.GetAll())
         {
             Categorias.Add(categoria);
         }
+
+        CategoriaSelecionada = categoriaSelecionadaId is null
+            ? null
+            : Categorias.FirstOrDefault(c => c.Id == categoriaSelecionadaId);
     }
 
     partial void OnTermoBuscaChanged(string value)

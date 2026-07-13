@@ -61,6 +61,9 @@ public partial class StockViewModel : ObservableObject
 
     private void CarregarCombos()
     {
+        var produtoSelecionadoId = ProdutoSelecionado?.Id;
+        var fornecedorSelecionadoId = FornecedorSelecionado?.Id;
+
         Produtos.Clear();
         foreach (var produto in _productService.GetAll())
         {
@@ -72,6 +75,13 @@ public partial class StockViewModel : ObservableObject
         {
             Fornecedores.Add(fornecedor);
         }
+
+        ProdutoSelecionado = produtoSelecionadoId is null
+            ? null
+            : Produtos.FirstOrDefault(p => p.Id == produtoSelecionadoId);
+        FornecedorSelecionado = fornecedorSelecionadoId is null
+            ? null
+            : Fornecedores.FirstOrDefault(f => f.Id == fornecedorSelecionadoId);
     }
 
     private void AtualizarPaineis()
