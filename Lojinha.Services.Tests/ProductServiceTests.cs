@@ -64,4 +64,14 @@ public class ProductServiceTests : IDisposable
         Assert.Throws<InvalidOperationException>(() =>
             _service.Add("Guaraná 2L", "789000000001", _category.Id, TipoVenda.Unidade, 4m, 7m, 10m));
     }
+
+    [Fact]
+    public void Delete_RemovesProduct()
+    {
+        var product = _service.Add("Coca-Cola 2L", "789000000001", _category.Id, TipoVenda.Unidade, 5m, 8m, 10m);
+
+        _service.Delete(product.Id);
+
+        Assert.Empty(_service.GetAll());
+    }
 }

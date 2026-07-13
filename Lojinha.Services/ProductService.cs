@@ -45,6 +45,18 @@ public class ProductService
         return product;
     }
 
+    public void Delete(int id)
+    {
+        var product = _context.Products.Find(id);
+        if (product is null)
+        {
+            throw new InvalidOperationException("Produto não encontrado.");
+        }
+
+        _context.Products.Remove(product);
+        _context.SaveChanges();
+    }
+
     public IEnumerable<Product> GetAll()
     {
         return _context.Products.ToList();
