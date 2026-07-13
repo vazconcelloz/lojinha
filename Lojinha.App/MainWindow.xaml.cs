@@ -27,13 +27,19 @@ public partial class MainWindow : FluentWindow
         Loaded += (_, _) => NavigateTo("categorias");
     }
 
-    private void RootNavigation_OnSelectionChanged(NavigationView sender, RoutedEventArgs e)
+    private void NavigationViewItem_OnClick(object sender, RoutedEventArgs e)
     {
-        var tag = (RootNavigation.SelectedItem as NavigationViewItem)?.TargetPageTag;
-        if (tag is not null)
+        if (sender is not NavigationViewItem { TargetPageTag: { } tag })
         {
-            NavigateTo(tag);
+            return;
         }
+
+        CategoriasItem.IsActive = tag == "categorias";
+        FornecedoresItem.IsActive = tag == "fornecedores";
+        ProdutosItem.IsActive = tag == "produtos";
+        EstoqueItem.IsActive = tag == "estoque";
+
+        NavigateTo(tag);
     }
 
     private void NavigateTo(string tag)

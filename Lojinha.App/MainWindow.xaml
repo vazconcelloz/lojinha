@@ -18,25 +18,28 @@
         <ui:TitleBar Grid.Row="0" Title="Lojinha" />
 
         <ui:NavigationView x:Name="RootNavigation" Grid.Row="1" PaneDisplayMode="Left"
-                            OpenPaneLength="200" IsBackButtonVisible="Collapsed"
-                            SelectionChanged="RootNavigation_OnSelectionChanged">
+                            OpenPaneLength="200" IsBackButtonVisible="Collapsed">
             <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem x:Name="CategoriasItem" Content="Categorias" TargetPageTag="categorias">
+                <ui:NavigationViewItem x:Name="CategoriasItem" Content="Categorias" TargetPageTag="categorias"
+                                        Click="NavigationViewItem_OnClick">
                     <ui:NavigationViewItem.Icon>
                         <ui:SymbolIcon Symbol="Tag24" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="Fornecedores" TargetPageTag="fornecedores">
+                <ui:NavigationViewItem x:Name="FornecedoresItem" Content="Fornecedores" TargetPageTag="fornecedores"
+                                        Click="NavigationViewItem_OnClick">
                     <ui:NavigationViewItem.Icon>
                         <ui:SymbolIcon Symbol="BuildingShop24" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="Produtos" TargetPageTag="produtos">
+                <ui:NavigationViewItem x:Name="ProdutosItem" Content="Produtos" TargetPageTag="produtos"
+                                        Click="NavigationViewItem_OnClick">
                     <ui:NavigationViewItem.Icon>
                         <ui:SymbolIcon Symbol="Box24" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="Estoque" TargetPageTag="estoque">
+                <ui:NavigationViewItem x:Name="EstoqueItem" Content="Estoque" TargetPageTag="estoque"
+                                        Click="NavigationViewItem_OnClick">
                     <ui:NavigationViewItem.Icon>
                         <ui:SymbolIcon Symbol="BoxMultiple24" />
                     </ui:NavigationViewItem.Icon>
