@@ -84,6 +84,7 @@ public class ProductServiceTests : IDisposable
         _context.Sales.Add(sale);
         _context.SaveChanges();
 
-        Assert.Throws<InvalidOperationException>(() => _service.Delete(product.Id));
+        var ex = Assert.Throws<InvalidOperationException>(() => _service.Delete(product.Id));
+        Assert.Equal("Produto possui vendas registradas e não pode ser excluído.", ex.Message);
     }
 }
