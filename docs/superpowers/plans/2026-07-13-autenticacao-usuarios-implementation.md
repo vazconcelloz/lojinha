@@ -418,12 +418,12 @@ public class UserService
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test --filter "FullyQualifiedName~UserServiceTests"`
-Expected: PASS, 10 tests total for this class.
+Expected: PASS, 11 tests total for this class.
 
 - [ ] **Step 5: Run the full test suite**
 
 Run: `dotnet test`
-Expected: PASS, 52 tests total.
+Expected: PASS, 53 tests total.
 
 - [ ] **Step 6: Commit**
 
@@ -731,7 +731,7 @@ Expected: `Compilação com êxito. 0 Erro(s)`
 - [ ] **Step 6: Run the full test suite**
 
 Run: `dotnet test`
-Expected: PASS, 52 tests total (unchanged — this task is UI-only).
+Expected: PASS, 53 tests total (unchanged — this task is UI-only).
 
 - [ ] **Step 7: Manual smoke check**
 
@@ -1147,7 +1147,7 @@ Expected: `Compilação com êxito. 0 Erro(s)`
 - [ ] **Step 9: Run the full test suite**
 
 Run: `dotnet test`
-Expected: PASS, 52 tests total.
+Expected: PASS, 53 tests total.
 
 - [ ] **Step 10: Manual smoke check**
 
@@ -1361,7 +1361,7 @@ Expected: `Compilação com êxito. 0 Erro(s)`
 - [ ] **Step 5: Run the full test suite**
 
 Run: `dotnet test`
-Expected: PASS, 52 tests total.
+Expected: PASS, 53 tests total.
 
 - [ ] **Step 6: Manual smoke check**
 
@@ -1728,7 +1728,7 @@ Expected: `Compilação com êxito. 0 Erro(s)`
 - [ ] **Step 4: Run the full test suite**
 
 Run: `dotnet test`
-Expected: PASS, 53 tests total.
+Expected: PASS, 54 tests total.
 
 - [ ] **Step 5: Manual smoke check**
 
@@ -1750,7 +1750,7 @@ git commit -m "feat: restrict Estoque lot entry/delete to Admin"
 - [ ] **Step 1: Full test suite**
 
 Run: `dotnet test`
-Expected: PASS, 53 tests total, 0 failures.
+Expected: PASS, 54 tests total, 0 failures.
 
 - [ ] **Step 2: Full build**
 
