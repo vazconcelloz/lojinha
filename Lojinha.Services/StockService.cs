@@ -1,5 +1,6 @@
 using Lojinha.Data;
 using Lojinha.Data.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Lojinha.Services;
 
@@ -43,6 +44,18 @@ public class StockService
         return lot;
     }
 
+    public void DeleteLot(int id)
+    {
+        var lot = _context.StockLots.Find(id);
+        if (lot is null)
+        {
+            throw new InvalidOperationException("Lote não encontrado.");
+        }
+
+        _context.StockLots.Remove(lot);
+        _context.SaveChanges();
+    }
+
     public IEnumerable<Product> GetLowStockProducts()
     {
         return _context.Products
@@ -54,6 +67,7 @@ public class StockService
     {
         var limite = DateTime.Today.AddDays(diasLimite);
         return _context.StockLots
+            .Include(l => l.Product)
             .Where(l => l.QuantidadeRestante > 0
                 && l.DataValidade != null
                 && l.DataValidade >= DateTime.Today
@@ -64,6 +78,7 @@ public class StockService
     public IEnumerable<StockLot> GetExpiredLots()
     {
         return _context.StockLots
+            .Include(l => l.Product)
             .Where(l => l.QuantidadeRestante > 0
                 && l.DataValidade != null
                 && l.DataValidade < DateTime.Today)

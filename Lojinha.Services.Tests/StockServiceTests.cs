@@ -86,6 +86,17 @@ public class StockServiceTests : IDisposable
     }
 
     [Fact]
+    public void DeleteLot_RemovesLot()
+    {
+        var product = CreateProduct();
+        var lot = _service.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        _service.DeleteLot(lot.Id);
+
+        Assert.Equal(0, _service.GetCurrentStock(product.Id));
+    }
+
+    [Fact]
     public void GetLowStockProducts_ReturnsProductsBelowMinimum()
     {
         var lowProduct = CreateProduct(estoqueMinimo: 10);
@@ -111,6 +122,7 @@ public class StockServiceTests : IDisposable
 
         Assert.Single(expiring);
         Assert.Equal(DateTime.Today.AddDays(3), expiring.First().DataValidade);
+        Assert.Equal("Coca-Cola 2L", expiring.First().Product?.Nome);
     }
 
     [Fact]
