@@ -56,6 +56,40 @@ public class StockService
         _context.SaveChanges();
     }
 
+    public void DeductStock(int productId, decimal quantidade)
+    {
+        if (quantidade <= 0)
+        {
+            throw new ArgumentException("Quantidade deve ser maior que zero.", nameof(quantidade));
+        }
+
+        var lotes = _context.StockLots
+            .Where(l => l.ProductId == productId && l.QuantidadeRestante > 0)
+            .OrderBy(l => l.DataEntrada)
+            .ToList();
+
+        var disponivel = lotes.Sum(l => l.QuantidadeRestante);
+        if (disponivel < quantidade)
+        {
+            throw new InvalidOperationException("Estoque insuficiente para dar baixa.");
+        }
+
+        var restante = quantidade;
+        foreach (var lote in lotes)
+        {
+            if (restante <= 0)
+            {
+                break;
+            }
+
+            var consumido = Math.Min(lote.QuantidadeRestante, restante);
+            lote.QuantidadeRestante -= consumido;
+            restante -= consumido;
+        }
+
+        _context.SaveChanges();
+    }
+
     public IEnumerable<Product> GetLowStockProducts()
     {
         return _context.Products

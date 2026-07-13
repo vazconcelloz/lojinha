@@ -97,6 +97,40 @@ public class StockServiceTests : IDisposable
     }
 
     [Fact]
+    public void DeductStock_ConsumesOldestLotFirst()
+    {
+        var product = CreateProduct();
+        var loteAntigo = new StockLot { ProductId = product.Id, Quantidade = 5, QuantidadeRestante = 5, DataEntrada = DateTime.Today.AddDays(-2) };
+        var loteNovo = new StockLot { ProductId = product.Id, Quantidade = 5, QuantidadeRestante = 5, DataEntrada = DateTime.Today };
+        _context.StockLots.AddRange(loteAntigo, loteNovo);
+        _context.SaveChanges();
+
+        _service.DeductStock(product.Id, 7);
+
+        Assert.Equal(0, _context.StockLots.Find(loteAntigo.Id)!.QuantidadeRestante);
+        Assert.Equal(3, _context.StockLots.Find(loteNovo.Id)!.QuantidadeRestante);
+    }
+
+    [Fact]
+    public void DeductStock_ThrowsWhenInsufficientStock()
+    {
+        var product = CreateProduct();
+        _service.AddLot(product.Id, quantidade: 5, dataValidade: null, supplierId: null);
+
+        Assert.Throws<InvalidOperationException>(() => _service.DeductStock(product.Id, 10));
+        Assert.Equal(5, _service.GetCurrentStock(product.Id));
+    }
+
+    [Fact]
+    public void DeductStock_ThrowsWhenQuantidadeIsNotPositive()
+    {
+        var product = CreateProduct();
+        _service.AddLot(product.Id, quantidade: 5, dataValidade: null, supplierId: null);
+
+        Assert.Throws<ArgumentException>(() => _service.DeductStock(product.Id, 0));
+    }
+
+    [Fact]
     public void GetLowStockProducts_ReturnsProductsBelowMinimum()
     {
         var lowProduct = CreateProduct(estoqueMinimo: 10);
