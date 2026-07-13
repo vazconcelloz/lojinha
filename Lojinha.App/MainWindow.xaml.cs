@@ -53,8 +53,32 @@ public partial class MainWindow : FluentWindow
             _ => ((FrameworkElement)_categoriaView, (object)_viewModel.Categorias)
         };
 
+        RefreshViewModel(tag);
+
         view.DataContext = dataContext;
         RootNavigation.ReplaceContent(view, dataContext);
+    }
+
+    private void RefreshViewModel(string tag)
+    {
+        switch (tag)
+        {
+            case "categorias":
+                _viewModel.Categorias.Refresh();
+                break;
+            case "fornecedores":
+                _viewModel.Fornecedores.Refresh();
+                break;
+            case "produtos":
+                _viewModel.Produtos.Refresh();
+                break;
+            case "estoque":
+                _viewModel.Estoque.Refresh();
+                break;
+            default:
+                _viewModel.Categorias.Refresh();
+                break;
+        }
     }
 
     private void ThemeToggle_OnToggle(object sender, RoutedEventArgs e)

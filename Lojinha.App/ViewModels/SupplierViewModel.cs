@@ -32,6 +32,11 @@ public partial class SupplierViewModel : ObservableObject
         Carregar();
     }
 
+    public void Refresh()
+    {
+        Carregar();
+    }
+
     private void Carregar()
     {
         Fornecedores.Clear();

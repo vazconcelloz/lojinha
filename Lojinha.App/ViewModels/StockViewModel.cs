@@ -53,6 +53,12 @@ public partial class StockViewModel : ObservableObject
         AtualizarPaineis();
     }
 
+    public void Refresh()
+    {
+        CarregarCombos();
+        AtualizarPaineis();
+    }
+
     private void CarregarCombos()
     {
         Produtos.Clear();

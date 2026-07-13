@@ -55,6 +55,12 @@ public partial class ProductViewModel : ObservableObject
         Buscar();
     }
 
+    public void Refresh()
+    {
+        CarregarCategorias();
+        Buscar();
+    }
+
     private void CarregarCategorias()
     {
         Categorias.Clear();

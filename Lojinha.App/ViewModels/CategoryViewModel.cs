@@ -29,6 +29,11 @@ public partial class CategoryViewModel : ObservableObject
         Carregar();
     }
 
+    public void Refresh()
+    {
+        Carregar();
+    }
+
     private void Carregar()
     {
         Categorias.Clear();
