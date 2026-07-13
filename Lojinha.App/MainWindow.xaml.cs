@@ -1,6 +1,8 @@
 using System.Windows;
+using Lojinha.App.Services;
 using Lojinha.App.ViewModels;
 using Lojinha.App.Views;
+using Lojinha.Data.Models;
 using Wpf.Ui;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
@@ -17,7 +19,9 @@ public partial class MainWindow : FluentWindow
     private readonly VendaView _vendaView = new();
     private readonly UsuarioView _usuarioView = new();
 
-    public MainWindow(MainViewModel viewModel, ISnackbarService snackbarService, IContentDialogService contentDialogService)
+    public event EventHandler? Sair;
+
+    public MainWindow(MainViewModel viewModel, ISnackbarService snackbarService, IContentDialogService contentDialogService, SessionService session)
     {
         InitializeComponent();
 
@@ -25,8 +29,19 @@ public partial class MainWindow : FluentWindow
         snackbarService.SetSnackbarPresenter(RootSnackbarPresenter);
         contentDialogService.SetContentPresenter(RootContentDialogPresenter);
 
-        CategoriasItem.IsActive = true;
-        Loaded += (_, _) => NavigateTo("categorias");
+        var isAdmin = session.CurrentUser?.Papel == PapelUsuario.Admin;
+        if (!isAdmin)
+        {
+            CategoriasItem.Visibility = Visibility.Collapsed;
+            FornecedoresItem.Visibility = Visibility.Collapsed;
+            ProdutosItem.Visibility = Visibility.Collapsed;
+            UsuariosItem.Visibility = Visibility.Collapsed;
+        }
+
+        var tagInicial = isAdmin ? "categorias" : "vendas";
+        var itemInicial = isAdmin ? CategoriasItem : VendasItem;
+        itemInicial.IsActive = true;
+        Loaded += (_, _) => NavigateTo(tagInicial);
     }
 
     private void NavigationViewItem_OnClick(object sender, RoutedEventArgs e)
@@ -97,5 +112,10 @@ public partial class MainWindow : FluentWindow
     {
         var theme = ThemeToggle.IsChecked == true ? ApplicationTheme.Dark : ApplicationTheme.Light;
         ApplicationThemeManager.Apply(theme, WindowBackdropType.None, false);
+    }
+
+    private void SairButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        Sair?.Invoke(this, EventArgs.Empty);
     }
 }
