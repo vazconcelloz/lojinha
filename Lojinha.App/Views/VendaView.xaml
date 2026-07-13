@@ -85,13 +85,20 @@
                             <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat=C}" Width="100" />
                             <DataGridTextColumn Header="Pagamento" Binding="{Binding FormaPagamento}" Width="100" />
                             <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" />
+                            <DataGridTextColumn Header="Vendedor" Binding="{Binding UsuarioNome}" Width="120" />
                             <DataGridTemplateColumn Header="" Width="140">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ui:Button Content="Cancelar" Appearance="Danger" Icon="{ui:SymbolIcon Symbol=Dismiss24}"
-                                                   Visibility="{Binding PodeCancelar, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                    Command="{Binding DataContext.CancelarVendaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                   CommandParameter="{Binding}" />
+                                                   CommandParameter="{Binding}">
+                                            <ui:Button.Visibility>
+                                                <MultiBinding Converter="{StaticResource BooleanAndToVisibilityConverter}">
+                                                    <Binding Path="PodeCancelar" />
+                                                    <Binding Path="DataContext.PodeCancelarVenda" RelativeSource="{RelativeSource AncestorType=DataGrid}" />
+                                                </MultiBinding>
+                                            </ui:Button.Visibility>
+                                        </ui:Button>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

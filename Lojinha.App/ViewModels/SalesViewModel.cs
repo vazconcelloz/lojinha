@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Lojinha.App.Services;
 using Lojinha.Data.Models;
 using Lojinha.Services;
 using Wpf.Ui;
@@ -15,7 +16,7 @@ public record ItemCarrinho(int ProductId, string Produto, decimal Quantidade, de
     public decimal Subtotal => Quantidade * PrecoUnitario;
 }
 
-public record VendaHistoricoItem(int SaleId, DateTime DataHora, decimal Total, FormaPagamento FormaPagamento, bool Cancelada)
+public record VendaHistoricoItem(int SaleId, DateTime DataHora, decimal Total, FormaPagamento FormaPagamento, bool Cancelada, string? UsuarioNome)
 {
     public string Status => Cancelada ? "Cancelada" : "Concluída";
     public bool PodeCancelar => !Cancelada;
@@ -27,6 +28,7 @@ public partial class SalesViewModel : ObservableObject
     private readonly ProductService _productService;
     private readonly ISnackbarService _snackbar;
     private readonly IContentDialogService _dialogService;
+    private readonly SessionService _session;
 
     public ObservableCollection<Product> Produtos { get; } = new();
     public ObservableCollection<ItemCarrinho> Carrinho { get; } = new();
@@ -47,12 +49,15 @@ public partial class SalesViewModel : ObservableObject
 
     public decimal Total => Carrinho.Sum(i => i.Subtotal);
 
-    public SalesViewModel(SalesService salesService, ProductService productService, ISnackbarService snackbar, IContentDialogService dialogService)
+    public bool PodeCancelarVenda => _session.CurrentUser?.Papel == PapelUsuario.Admin;
+
+    public SalesViewModel(SalesService salesService, ProductService productService, ISnackbarService snackbar, IContentDialogService dialogService, SessionService session)
     {
         _salesService = salesService;
         _productService = productService;
         _snackbar = snackbar;
         _dialogService = dialogService;
+        _session = session;
         Carrinho.CollectionChanged += (_, _) => OnPropertyChanged(nameof(Total));
         CarregarProdutos();
         CarregarHistorico();
@@ -62,6 +67,7 @@ public partial class SalesViewModel : ObservableObject
     {
         CarregarProdutos();
         CarregarHistorico();
+        OnPropertyChanged(nameof(PodeCancelarVenda));
     }
 
     private void CarregarProdutos()
@@ -84,7 +90,7 @@ public partial class SalesViewModel : ObservableObject
         Historico.Clear();
         foreach (var venda in _salesService.GetSaleHistory())
         {
-            Historico.Add(new VendaHistoricoItem(venda.Id, venda.DataHora, venda.Total, venda.FormaPagamento, venda.Cancelada));
+            Historico.Add(new VendaHistoricoItem(venda.Id, venda.DataHora, venda.Total, venda.FormaPagamento, venda.Cancelada, venda.UsuarioNome));
         }
     }
 
@@ -164,7 +170,7 @@ public partial class SalesViewModel : ObservableObject
         try
         {
             var itens = Carrinho.Select(i => (i.ProductId, i.Quantidade));
-            _salesService.RegisterSale(itens, FormaPagamentoSelecionada);
+            _salesService.RegisterSale(itens, FormaPagamentoSelecionada, _session.CurrentUser?.NomeUsuario);
             Carrinho.Clear();
             CarregarHistorico();
             _snackbar.Show("Sucesso", "Venda registrada.", ControlAppearance.Success);

@@ -12,6 +12,7 @@
             </ResourceDictionary.MergedDictionaries>
             <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
             <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <converters:BooleanAndToVisibilityConverter x:Key="BooleanAndToVisibilityConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
