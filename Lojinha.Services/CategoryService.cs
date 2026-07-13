@@ -25,6 +25,23 @@ public class CategoryService
         return category;
     }
 
+    public void Update(int id, string nome)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            throw new ArgumentException("Nome é obrigatório.", nameof(nome));
+        }
+
+        var category = _context.Categories.Find(id);
+        if (category is null)
+        {
+            throw new InvalidOperationException("Categoria não encontrada.");
+        }
+
+        category.Nome = nome;
+        _context.SaveChanges();
+    }
+
     public void Delete(int id)
     {
         var category = _context.Categories.Find(id);

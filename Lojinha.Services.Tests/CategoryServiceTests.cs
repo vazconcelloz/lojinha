@@ -78,4 +78,28 @@ public class CategoryServiceTests : IDisposable
 
         Assert.Throws<InvalidOperationException>(() => _service.Delete(category.Id));
     }
+
+    [Fact]
+    public void Update_ChangesName()
+    {
+        var category = _service.Add("Bebidas");
+
+        _service.Update(category.Id, "Bebidas Alcoólicas");
+
+        Assert.Equal("Bebidas Alcoólicas", _service.GetAll().First().Nome);
+    }
+
+    [Fact]
+    public void Update_ThrowsWhenCategoryNotFound()
+    {
+        Assert.Throws<InvalidOperationException>(() => _service.Update(999, "Nome"));
+    }
+
+    [Fact]
+    public void Update_ThrowsWhenNameIsEmpty()
+    {
+        var category = _service.Add("Bebidas");
+
+        Assert.Throws<ArgumentException>(() => _service.Update(category.Id, ""));
+    }
 }
