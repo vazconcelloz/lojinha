@@ -13,6 +13,7 @@ public partial class MainWindow : FluentWindow
     private readonly CategoriaView _categoriaView = new();
     private readonly FornecedorView _fornecedorView = new();
     private readonly ProdutoView _produtoView = new();
+    private readonly EstoqueView _estoqueView = new();
 
     public MainWindow(MainViewModel viewModel, ISnackbarService snackbarService, IContentDialogService contentDialogService)
     {
@@ -42,6 +43,7 @@ public partial class MainWindow : FluentWindow
             "categorias" => ((FrameworkElement)_categoriaView, (object)_viewModel.Categorias),
             "fornecedores" => ((FrameworkElement)_fornecedorView, (object)_viewModel.Fornecedores),
             "produtos" => ((FrameworkElement)_produtoView, (object)_viewModel.Produtos),
+            "estoque" => ((FrameworkElement)_estoqueView, (object)_viewModel.Estoque),
             _ => ((FrameworkElement)_categoriaView, (object)_viewModel.Categorias)
         };
 

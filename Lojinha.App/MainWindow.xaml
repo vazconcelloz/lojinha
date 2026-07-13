@@ -36,6 +36,11 @@
                         <ui:SymbolIcon Symbol="Box24" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Estoque" TargetPageTag="estoque">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="BoxMultiple24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.PaneFooter>
                 <ui:ToggleSwitch x:Name="ThemeToggle" OnContent="Escuro" OffContent="Claro" Margin="12"

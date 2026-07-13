@@ -1,0 +1,92 @@
+<UserControl x:Class="Lojinha.App.Views.EstoqueView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             mc:Ignorable="d">
+    <ScrollViewer Margin="20" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <ui:Card Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Entrada de lote" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
+                    <WrapPanel>
+                        <ComboBox Width="220" Margin="0,0,8,8" ItemsSource="{Binding Produtos}" DisplayMemberPath="Nome"
+                                  SelectedItem="{Binding ProdutoSelecionado}" />
+                        <ui:TextBox Width="120" Margin="0,0,8,8" PlaceholderText="Quantidade"
+                                    Text="{Binding Quantidade, UpdateSourceTrigger=PropertyChanged}" />
+                        <ComboBox Width="200" Margin="0,0,8,8" ItemsSource="{Binding Fornecedores}" DisplayMemberPath="Nome"
+                                  SelectedItem="{Binding FornecedorSelecionado}" />
+                        <DatePicker Width="140" Margin="0,0,8,8" SelectedDate="{Binding DataValidade}" />
+                        <ui:Button Content="Adicionar lote" Appearance="Primary" Icon="{ui:SymbolIcon Symbol=Add24}"
+                                   Command="{Binding AdicionarLoteCommand}" />
+                    </WrapPanel>
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Estoque atual" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
+                    <DataGrid ItemsSource="{Binding EstoqueAtual}" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="240">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Produto" Binding="{Binding Produto}" Width="*" />
+                            <DataGridTextColumn Header="Quantidade" Binding="{Binding Quantidade}" Width="120" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Estoque baixo" FontWeight="Bold" FontSize="16" Foreground="OrangeRed" Margin="0,0,0,12" />
+                    <StackPanel Visibility="{Binding EstoqueBaixo.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                        <TextBlock Text="Nenhum produto abaixo do estoque mínimo." Opacity="0.7" />
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding EstoqueBaixo}" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="200"
+                              Visibility="{Binding EstoqueBaixo.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Invert}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Produto" Binding="{Binding Produto}" Width="*" />
+                            <DataGridTextColumn Header="Atual" Binding="{Binding QuantidadeAtual}" Width="100" />
+                            <DataGridTextColumn Header="Mínimo" Binding="{Binding EstoqueMinimo}" Width="100" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card>
+                <StackPanel>
+                    <TextBlock Text="Vencimentos" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
+                    <StackPanel Visibility="{Binding Vencimentos.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                        <TextBlock Text="Nenhum lote vencendo ou vencido." Opacity="0.7" />
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding Vencimentos}" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="240"
+                              Visibility="{Binding Vencimentos.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Invert}">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Vencido}" Value="True">
+                                        <Setter Property="Foreground" Value="Red" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Produto" Binding="{Binding Produto}" Width="*" />
+                            <DataGridTextColumn Header="Quantidade" Binding="{Binding QuantidadeRestante}" Width="100" />
+                            <DataGridTextColumn Header="Validade" Binding="{Binding DataValidade, StringFormat=dd/MM/yyyy}" Width="110" />
+                            <DataGridTemplateColumn Header="" Width="60">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ui:Button Appearance="Danger" Icon="{ui:SymbolIcon Symbol=Delete24}"
+                                                   Command="{Binding DataContext.ExcluirLoteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                   CommandParameter="{Binding}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </ui:Card>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

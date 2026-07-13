@@ -54,6 +54,7 @@ public partial class App : Application
         services.AddScoped<CategoryViewModel>();
         services.AddScoped<SupplierViewModel>();
         services.AddScoped<ProductViewModel>();
+        services.AddScoped<StockViewModel>();
         services.AddScoped<MainViewModel>();
 
         services.AddTransient<MainWindow>();
