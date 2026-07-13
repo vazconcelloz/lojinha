@@ -1,8 +1,12 @@
 using System.Collections.ObjectModel;
+using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lojinha.Data.Models;
 using Lojinha.Services;
+using Wpf.Ui;
+using Wpf.Ui.Controls;
+using Wpf.Ui.Extensions;
 
 namespace Lojinha.App.ViewModels;
 
@@ -10,6 +14,8 @@ public partial class ProductViewModel : ObservableObject
 {
     private readonly ProductService _productService;
     private readonly CategoryService _categoryService;
+    private readonly ISnackbarService _snackbar;
+    private readonly IContentDialogService _dialogService;
 
     public ObservableCollection<Product> Produtos { get; } = new();
     public ObservableCollection<Category> Categorias { get; } = new();
@@ -37,15 +43,14 @@ public partial class ProductViewModel : ObservableObject
     private decimal estoqueMinimo;
 
     [ObservableProperty]
-    private string? mensagemErro;
-
-    [ObservableProperty]
     private string termoBusca = string.Empty;
 
-    public ProductViewModel(ProductService productService, CategoryService categoryService)
+    public ProductViewModel(ProductService productService, CategoryService categoryService, ISnackbarService snackbar, IContentDialogService dialogService)
     {
         _productService = productService;
         _categoryService = categoryService;
+        _snackbar = snackbar;
+        _dialogService = dialogService;
         CarregarCategorias();
         Buscar();
     }
@@ -77,11 +82,9 @@ public partial class ProductViewModel : ObservableObject
     [RelayCommand]
     private void Adicionar()
     {
-        MensagemErro = null;
-
         if (CategoriaSelecionada is null)
         {
-            MensagemErro = "Selecione uma categoria.";
+            _snackbar.Show("Erro", "Selecione uma categoria.", ControlAppearance.Danger);
             return;
         }
 
@@ -94,10 +97,40 @@ public partial class ProductViewModel : ObservableObject
             PrecoVenda = 0;
             EstoqueMinimo = 0;
             Buscar();
+            _snackbar.Show("Sucesso", "Produto adicionado.", ControlAppearance.Success);
         }
         catch (Exception ex)
         {
-            MensagemErro = ex.Message;
+            _snackbar.Show("Erro", ex.Message, ControlAppearance.Danger);
+        }
+    }
+
+    [RelayCommand]
+    private async Task Excluir(Product produto)
+    {
+        var options = new SimpleContentDialogCreateOptions
+        {
+            Title = "Excluir produto",
+            Content = $"Tem certeza que deseja excluir '{produto.Nome}'? Os lotes de estoque vinculados também serão removidos.",
+            PrimaryButtonText = "Excluir",
+            CloseButtonText = "Cancelar",
+        };
+
+        var result = await _dialogService.ShowSimpleDialogAsync(options, CancellationToken.None);
+        if (result != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        try
+        {
+            _productService.Delete(produto.Id);
+            Buscar();
+            _snackbar.Show("Sucesso", $"Produto '{produto.Nome}' excluído.", ControlAppearance.Success);
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Show("Erro", ex.Message, ControlAppearance.Danger);
         }
     }
 }
