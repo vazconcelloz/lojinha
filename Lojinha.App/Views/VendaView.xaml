@@ -13,10 +13,11 @@
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
             <ui:Button Content="Caixa" Margin="0,0,8,0" Command="{Binding MostrarCaixaCommand}" />
-            <ui:Button Content="Histórico" Command="{Binding MostrarHistoricoCommand}" />
+            <ui:Button Content="Histórico" Margin="0,0,8,0" Command="{Binding MostrarHistoricoCommand}" />
+            <ui:Button Content="Turno" Command="{Binding MostrarTurnoCommand}" />
         </StackPanel>
 
-        <Grid Grid.Row="1" Visibility="{Binding MostrandoHistorico, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}">
+        <Grid Grid.Row="1" Visibility="{Binding AbaAtiva, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Caixa}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="1*" />
@@ -119,7 +120,7 @@
             </ui:Card>
         </Grid>
 
-        <ui:Card Grid.Row="1" Visibility="{Binding MostrandoHistorico, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <ui:Card Grid.Row="1" Visibility="{Binding AbaAtiva, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Historico}">
             <StackPanel>
                 <TextBlock Text="Histórico de vendas" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
                 <StackPanel Visibility="{Binding Historico.Count, Converter={StaticResource CountToVisibilityConverter}}">
@@ -162,6 +163,55 @@
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
+            </StackPanel>
+        </ui:Card>
+
+        <ui:Card Grid.Row="1" Visibility="{Binding AbaAtiva, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Turno}">
+            <StackPanel>
+                <TextBlock Text="Turno de caixa" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
+
+                <StackPanel Visibility="{Binding Turno.SessaoAberta, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}">
+                    <TextBlock Text="Nenhum caixa aberto." Opacity="0.7" Margin="0,0,0,12" />
+                    <WrapPanel>
+                        <ui:TextBox Width="150" Margin="0,0,8,0" PlaceholderText="Valor de abertura"
+                                    Text="{Binding Turno.ValorAberturaEntrada, UpdateSourceTrigger=PropertyChanged}" />
+                        <ui:Button Content="Abrir caixa" Appearance="Primary" Icon="{ui:SymbolIcon Symbol=Wallet24}"
+                                   Command="{Binding Turno.AbrirCaixaCommand}" />
+                    </WrapPanel>
+                </StackPanel>
+
+                <StackPanel Visibility="{Binding Turno.SessaoAberta, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="{Binding Turno.SessaoAtual.DataAbertura, StringFormat='Aberto desde: {0:dd/MM/yyyy HH:mm}'}" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding Turno.SessaoAtual.ValorAbertura, StringFormat='Valor de abertura: {0:C}'}" Margin="0,0,0,12" Opacity="0.7" />
+
+                    <TextBlock Text="Sangria / suprimento" FontWeight="Bold" Margin="0,0,0,8" />
+                    <WrapPanel Margin="0,0,0,12">
+                        <ComboBox Width="120" Margin="0,0,8,0" ItemsSource="{Binding Turno.TiposMovimento}"
+                                  SelectedItem="{Binding Turno.TipoMovimentoSelecionado}" />
+                        <ui:TextBox Width="120" Margin="0,0,8,0" PlaceholderText="Valor"
+                                    Text="{Binding Turno.ValorMovimentoEntrada, UpdateSourceTrigger=PropertyChanged}" />
+                        <ui:Button Content="Registrar" Icon="{ui:SymbolIcon Symbol=ArrowSwap24}"
+                                   Command="{Binding Turno.RegistrarMovimentoCommand}" />
+                    </WrapPanel>
+
+                    <DataGrid ItemsSource="{Binding Turno.Movimentos}" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="200" Margin="0,0,0,16">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Data" Binding="{Binding DataHora, StringFormat='dd/MM/yyyy HH:mm'}" Width="140" />
+                            <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="100" />
+                            <DataGridTextColumn Header="Valor" Binding="{Binding Valor, StringFormat=C}" Width="100" />
+                            <DataGridTextColumn Header="Autorizado por" Binding="{Binding AutorizadoPor}" Width="140" />
+                            <DataGridTextColumn Header="Observação" Binding="{Binding Observacao}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Text="Fechar caixa" FontWeight="Bold" Margin="0,0,0,8" />
+                    <WrapPanel>
+                        <ui:TextBox Width="150" Margin="0,0,8,0" PlaceholderText="Valor contado"
+                                    Text="{Binding Turno.ValorContadoEntrada, UpdateSourceTrigger=PropertyChanged}" />
+                        <ui:Button Content="Fechar caixa" Appearance="Danger" Icon="{ui:SymbolIcon Symbol=LockClosed24}"
+                                   Command="{Binding Turno.FecharCaixaCommand}" />
+                    </WrapPanel>
+                </StackPanel>
             </StackPanel>
         </ui:Card>
     </Grid>
