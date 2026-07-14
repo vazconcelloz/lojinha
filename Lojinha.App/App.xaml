@@ -13,6 +13,7 @@
             <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
             <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <converters:BooleanAndToVisibilityConverter x:Key="BooleanAndToVisibilityConverter" />
+            <converters:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
