@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,12 +13,67 @@ using Wpf.Ui.Extensions;
 
 namespace Lojinha.App.ViewModels;
 
-public record ItemCarrinho(int ProductId, string Produto, decimal Quantidade, decimal PrecoUnitario)
+public partial class ItemCarrinho : ObservableObject
 {
+    public int ProductId { get; }
+    public string Produto { get; }
+
+    [ObservableProperty]
+    private decimal quantidade;
+
+    [ObservableProperty]
+    private decimal precoUnitario;
+
+    [ObservableProperty]
+    private TipoDesconto descontoTipo = TipoDesconto.Valor;
+
+    [ObservableProperty]
+    private decimal descontoEntrada;
+
     public decimal Subtotal => Quantidade * PrecoUnitario;
+
+    public decimal DescontoAplicado => DescontoTipo == TipoDesconto.Percentual
+        ? Subtotal * DescontoEntrada / 100
+        : DescontoEntrada;
+
+    public decimal SubtotalComDesconto => Subtotal - DescontoAplicado;
+
+    public ItemCarrinho(int productId, string produto, decimal quantidade, decimal precoUnitario)
+    {
+        ProductId = productId;
+        Produto = produto;
+        this.quantidade = quantidade;
+        this.precoUnitario = precoUnitario;
+    }
+
+    partial void OnQuantidadeChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(Subtotal));
+        OnPropertyChanged(nameof(DescontoAplicado));
+        OnPropertyChanged(nameof(SubtotalComDesconto));
+    }
+
+    partial void OnPrecoUnitarioChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(Subtotal));
+        OnPropertyChanged(nameof(DescontoAplicado));
+        OnPropertyChanged(nameof(SubtotalComDesconto));
+    }
+
+    partial void OnDescontoTipoChanged(TipoDesconto value)
+    {
+        OnPropertyChanged(nameof(DescontoAplicado));
+        OnPropertyChanged(nameof(SubtotalComDesconto));
+    }
+
+    partial void OnDescontoEntradaChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(DescontoAplicado));
+        OnPropertyChanged(nameof(SubtotalComDesconto));
+    }
 }
 
-public record VendaHistoricoItem(int SaleId, DateTime DataHora, decimal Total, FormaPagamento FormaPagamento, bool Cancelada, string? UsuarioNome)
+public record VendaHistoricoItem(int SaleId, DateTime DataHora, decimal Total, FormaPagamento FormaPagamento, bool Cancelada, string? UsuarioNome, decimal DescontoValor, decimal? ValorRecebido, decimal? Troco, string? AutorizadoPor)
 {
     public string Status => Cancelada ? "Cancelada" : "Concluída";
     public bool PodeCancelar => !Cancelada;
@@ -29,11 +86,13 @@ public partial class SalesViewModel : ObservableObject
     private readonly ISnackbarService _snackbar;
     private readonly IContentDialogService _dialogService;
     private readonly SessionService _session;
+    private readonly IAuthorizationService _authorizationService;
 
     public ObservableCollection<Product> Produtos { get; } = new();
     public ObservableCollection<ItemCarrinho> Carrinho { get; } = new();
     public ObservableCollection<VendaHistoricoItem> Historico { get; } = new();
     public FormaPagamento[] FormasPagamento { get; } = Enum.GetValues<FormaPagamento>();
+    public TipoDesconto[] TiposDesconto { get; } = Enum.GetValues<TipoDesconto>();
 
     [ObservableProperty]
     private string termoBusca = string.Empty;
@@ -47,20 +106,102 @@ public partial class SalesViewModel : ObservableObject
     [ObservableProperty]
     private FormaPagamento formaPagamentoSelecionada;
 
-    public decimal Total => Carrinho.Sum(i => i.Subtotal);
+    [ObservableProperty]
+    private TipoDesconto tipoDescontoVenda = TipoDesconto.Valor;
+
+    [ObservableProperty]
+    private decimal descontoVendaEntrada;
+
+    [ObservableProperty]
+    private decimal valorRecebido;
+
+    public decimal CarrinhoSubtotal => Carrinho.Sum(i => i.SubtotalComDesconto);
+
+    public decimal DescontoVendaAplicado => TipoDescontoVenda == TipoDesconto.Percentual
+        ? CarrinhoSubtotal * DescontoVendaEntrada / 100
+        : DescontoVendaEntrada;
+
+    public decimal Total => CarrinhoSubtotal - DescontoVendaAplicado;
+
+    public bool EhDinheiro => FormaPagamentoSelecionada == FormaPagamento.Dinheiro;
+
+    public decimal Troco => EhDinheiro ? Math.Max(0, ValorRecebido - Total) : 0;
 
     public bool PodeCancelarVenda => _session.CurrentUser?.Papel == PapelUsuario.Admin;
 
-    public SalesViewModel(SalesService salesService, ProductService productService, ISnackbarService snackbar, IContentDialogService dialogService, SessionService session)
+    public SalesViewModel(SalesService salesService, ProductService productService, ISnackbarService snackbar, IContentDialogService dialogService, SessionService session, IAuthorizationService authorizationService)
     {
         _salesService = salesService;
         _productService = productService;
         _snackbar = snackbar;
         _dialogService = dialogService;
         _session = session;
-        Carrinho.CollectionChanged += (_, _) => OnPropertyChanged(nameof(Total));
+        _authorizationService = authorizationService;
+        Carrinho.CollectionChanged += OnCarrinhoChanged;
         CarregarProdutos();
         CarregarHistorico();
+    }
+
+    private void OnCarrinhoChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (ItemCarrinho item in e.OldItems)
+            {
+                item.PropertyChanged -= OnItemCarrinhoPropertyChanged;
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (ItemCarrinho item in e.NewItems)
+            {
+                item.PropertyChanged += OnItemCarrinhoPropertyChanged;
+            }
+        }
+
+        RaiseTotaisChanged();
+    }
+
+    private void OnItemCarrinhoPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ItemCarrinho.SubtotalComDesconto))
+        {
+            RaiseTotaisChanged();
+        }
+    }
+
+    private void RaiseTotaisChanged()
+    {
+        OnPropertyChanged(nameof(CarrinhoSubtotal));
+        OnPropertyChanged(nameof(DescontoVendaAplicado));
+        OnPropertyChanged(nameof(Total));
+        OnPropertyChanged(nameof(Troco));
+    }
+
+    partial void OnTipoDescontoVendaChanged(TipoDesconto value)
+    {
+        OnPropertyChanged(nameof(DescontoVendaAplicado));
+        OnPropertyChanged(nameof(Total));
+        OnPropertyChanged(nameof(Troco));
+    }
+
+    partial void OnDescontoVendaEntradaChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(DescontoVendaAplicado));
+        OnPropertyChanged(nameof(Total));
+        OnPropertyChanged(nameof(Troco));
+    }
+
+    partial void OnValorRecebidoChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(Troco));
+    }
+
+    partial void OnFormaPagamentoSelecionadaChanged(FormaPagamento value)
+    {
+        OnPropertyChanged(nameof(EhDinheiro));
+        OnPropertyChanged(nameof(Troco));
     }
 
     public void Refresh()
@@ -90,7 +231,8 @@ public partial class SalesViewModel : ObservableObject
         Historico.Clear();
         foreach (var venda in _salesService.GetSaleHistory())
         {
-            Historico.Add(new VendaHistoricoItem(venda.Id, venda.DataHora, venda.Total, venda.FormaPagamento, venda.Cancelada, venda.UsuarioNome));
+            var descontoTotal = venda.DescontoValor + venda.Items.Sum(i => i.DescontoValor);
+            Historico.Add(new VendaHistoricoItem(venda.Id, venda.DataHora, venda.Total, venda.FormaPagamento, venda.Cancelada, venda.UsuarioNome, descontoTotal, venda.ValorRecebido, venda.Troco, venda.AutorizadoPor));
         }
     }
 
@@ -140,8 +282,7 @@ public partial class SalesViewModel : ObservableObject
         var itemExistente = Carrinho.FirstOrDefault(i => i.ProductId == produto.Id);
         if (itemExistente is not null)
         {
-            var index = Carrinho.IndexOf(itemExistente);
-            Carrinho[index] = itemExistente with { Quantidade = itemExistente.Quantidade + quantidadeAdicionar };
+            itemExistente.Quantidade += quantidadeAdicionar;
         }
         else
         {
@@ -167,12 +308,35 @@ public partial class SalesViewModel : ObservableObject
             return;
         }
 
+        var temDesconto = Carrinho.Any(i => i.DescontoAplicado > 0) || DescontoVendaAplicado > 0;
+        string? autorizadoPor = null;
+
+        if (temDesconto)
+        {
+            if (_session.CurrentUser?.Papel == PapelUsuario.Admin)
+            {
+                autorizadoPor = _session.CurrentUser.NomeUsuario;
+            }
+            else
+            {
+                autorizadoPor = _authorizationService.AutorizarDesconto();
+                if (autorizadoPor is null)
+                {
+                    _snackbar.Show("Erro", "Desconto não autorizado.", ControlAppearance.Danger);
+                    return;
+                }
+            }
+        }
+
         try
         {
-            var itens = Carrinho.Select(i => (i.ProductId, i.Quantidade, DescontoItem: 0m));
-            var valorRecebido = FormaPagamentoSelecionada == FormaPagamento.Dinheiro ? Total : (decimal?)null;
-            _salesService.RegisterSale(itens, FormaPagamentoSelecionada, _session.CurrentUser?.NomeUsuario, valorRecebido: valorRecebido);
+            var itens = Carrinho.Select(i => (i.ProductId, i.Quantidade, i.DescontoAplicado));
+            var valorRecebidoVenda = EhDinheiro ? ValorRecebido : (decimal?)null;
+            _salesService.RegisterSale(itens, FormaPagamentoSelecionada, _session.CurrentUser?.NomeUsuario, DescontoVendaAplicado, valorRecebidoVenda, autorizadoPor);
             Carrinho.Clear();
+            TipoDescontoVenda = TipoDesconto.Valor;
+            DescontoVendaEntrada = 0;
+            ValorRecebido = 0;
             CarregarHistorico();
             _snackbar.Show("Sucesso", "Venda registrada.", ControlAppearance.Success);
         }
