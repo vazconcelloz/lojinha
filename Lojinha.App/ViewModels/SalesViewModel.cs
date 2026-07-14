@@ -115,6 +115,9 @@ public partial class SalesViewModel : ObservableObject
     [ObservableProperty]
     private decimal valorRecebido;
 
+    [ObservableProperty]
+    private bool mostrandoHistorico;
+
     public decimal CarrinhoSubtotal => Carrinho.Sum(i => i.SubtotalComDesconto);
 
     public decimal DescontoVendaAplicado => TipoDescontoVenda == TipoDesconto.Percentual
@@ -297,6 +300,18 @@ public partial class SalesViewModel : ObservableObject
     private void RemoverDoCarrinho(ItemCarrinho item)
     {
         Carrinho.Remove(item);
+    }
+
+    [RelayCommand]
+    private void MostrarCaixa()
+    {
+        MostrandoHistorico = false;
+    }
+
+    [RelayCommand]
+    private void MostrarHistorico()
+    {
+        MostrandoHistorico = true;
     }
 
     [RelayCommand]
