@@ -15,7 +15,13 @@ public class SalesService
         _stockService = stockService;
     }
 
-    public Sale RegisterSale(IEnumerable<(int ProductId, decimal Quantidade)> itens, FormaPagamento formaPagamento, string? usuarioNome = null)
+    public Sale RegisterSale(
+        IEnumerable<(int ProductId, decimal Quantidade, decimal DescontoItem)> itens,
+        FormaPagamento formaPagamento,
+        string? usuarioNome = null,
+        decimal descontoVenda = 0,
+        decimal? valorRecebido = null,
+        string? autorizadoPor = null)
     {
         var itensList = itens.ToList();
         if (itensList.Count == 0)
@@ -56,20 +62,46 @@ public class SalesService
             UsuarioNome = usuarioNome
         };
 
-        decimal total = 0;
+        decimal subtotalCarrinho = 0;
         foreach (var item in itensList)
         {
             var produto = produtos[item.ProductId];
+            var itemSubtotal = item.Quantidade * produto.PrecoVenda;
+
+            if (item.DescontoItem < 0 || item.DescontoItem > itemSubtotal)
+            {
+                throw new ArgumentException("Desconto do item não pode ser maior que o subtotal.", nameof(itens));
+            }
+
             var saleItem = new SaleItem
             {
                 ProductId = item.ProductId,
                 Quantidade = item.Quantidade,
-                PrecoUnitario = produto.PrecoVenda
+                PrecoUnitario = produto.PrecoVenda,
+                DescontoValor = item.DescontoItem
             };
             sale.Items.Add(saleItem);
-            total += saleItem.Subtotal;
+            subtotalCarrinho += itemSubtotal - item.DescontoItem;
         }
-        sale.Total = total;
+
+        if (descontoVenda < 0 || descontoVenda > subtotalCarrinho)
+        {
+            throw new ArgumentException("Desconto da venda não pode ser maior que o subtotal.", nameof(descontoVenda));
+        }
+
+        sale.DescontoValor = descontoVenda;
+        sale.Total = subtotalCarrinho - descontoVenda;
+        sale.AutorizadoPor = autorizadoPor;
+
+        if (formaPagamento == FormaPagamento.Dinheiro)
+        {
+            if (valorRecebido is null || valorRecebido < sale.Total)
+            {
+                throw new ArgumentException("Valor recebido é obrigatório e deve ser maior ou igual ao total.", nameof(valorRecebido));
+            }
+            sale.ValorRecebido = valorRecebido;
+            sale.Troco = valorRecebido.Value - sale.Total;
+        }
 
         _context.Sales.Add(sale);
 

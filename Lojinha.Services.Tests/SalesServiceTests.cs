@@ -60,7 +60,7 @@ public class SalesServiceTests : IDisposable
     [Fact]
     public void RegisterSale_ThrowsWhenCartIsEmpty()
     {
-        Assert.Throws<ArgumentException>(() => _service.RegisterSale(Array.Empty<(int, decimal)>(), FormaPagamento.Dinheiro));
+        Assert.Throws<ArgumentException>(() => _service.RegisterSale(Array.Empty<(int, decimal, decimal)>(), FormaPagamento.Dinheiro));
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class SalesServiceTests : IDisposable
         var product = CreateProduct();
         _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
 
-        Assert.Throws<ArgumentException>(() => _service.RegisterSale(new[] { (product.Id, 0m) }, FormaPagamento.Dinheiro));
+        Assert.Throws<ArgumentException>(() => _service.RegisterSale(new[] { (product.Id, 0m, 0m) }, FormaPagamento.Dinheiro));
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class SalesServiceTests : IDisposable
         var product = CreateProduct(precoVenda: 8m);
         _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
 
-        var sale = _service.RegisterSale(new[] { (product.Id, 3m) }, FormaPagamento.Dinheiro);
+        var sale = _service.RegisterSale(new[] { (product.Id, 3m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 24m);
 
         Assert.Equal(24m, sale.Total);
         Assert.Equal(7m, _stockService.GetCurrentStock(product.Id));
@@ -92,7 +92,7 @@ public class SalesServiceTests : IDisposable
         _stockService.AddLot(product1.Id, quantidade: 10, dataValidade: null, supplierId: null);
         _stockService.AddLot(product2.Id, quantidade: 10, dataValidade: null, supplierId: null);
 
-        var sale = _service.RegisterSale(new[] { (product1.Id, 2m), (product2.Id, 4m) }, FormaPagamento.Cartao);
+        var sale = _service.RegisterSale(new[] { (product1.Id, 2m, 0m), (product2.Id, 4m, 0m) }, FormaPagamento.Cartao);
 
         Assert.Equal(36m, sale.Total);
         Assert.Equal(8m, _stockService.GetCurrentStock(product1.Id));
@@ -108,7 +108,7 @@ public class SalesServiceTests : IDisposable
         _stockService.AddLot(product2.Id, quantidade: 2, dataValidade: null, supplierId: null);
 
         Assert.Throws<InvalidOperationException>(() =>
-            _service.RegisterSale(new[] { (product1.Id, 2m), (product2.Id, 5m) }, FormaPagamento.Pix));
+            _service.RegisterSale(new[] { (product1.Id, 2m, 0m), (product2.Id, 5m, 0m) }, FormaPagamento.Pix));
 
         Assert.Equal(10m, _stockService.GetCurrentStock(product1.Id));
         Assert.Equal(2m, _stockService.GetCurrentStock(product2.Id));
@@ -121,7 +121,7 @@ public class SalesServiceTests : IDisposable
         var product = CreateProduct(precoVenda: 8m);
         _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
 
-        _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Dinheiro);
+        _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 8m);
 
         product.PrecoVenda = 20m;
         _context.SaveChanges();
@@ -135,7 +135,7 @@ public class SalesServiceTests : IDisposable
     {
         var product = CreateProduct();
         _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
-        var sale = _service.RegisterSale(new[] { (product.Id, 4m) }, FormaPagamento.Dinheiro);
+        var sale = _service.RegisterSale(new[] { (product.Id, 4m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 32m);
 
         _service.CancelSale(sale.Id);
 
@@ -148,7 +148,7 @@ public class SalesServiceTests : IDisposable
     {
         var product = CreateProduct();
         _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
-        var sale = _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Dinheiro);
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 8m);
         _service.CancelSale(sale.Id);
 
         Assert.Throws<InvalidOperationException>(() => _service.CancelSale(sale.Id));
@@ -165,8 +165,8 @@ public class SalesServiceTests : IDisposable
     {
         var product = CreateProduct();
         _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
-        var sale1 = _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Dinheiro);
-        var sale2 = _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Cartao);
+        var sale1 = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 8m);
+        var sale2 = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Cartao);
 
         var historico = _service.GetSaleHistory().ToList();
 
@@ -180,8 +180,96 @@ public class SalesServiceTests : IDisposable
         var product = CreateProduct();
         _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
 
-        var sale = _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Dinheiro, "vendedor1");
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, "vendedor1", valorRecebido: 8m);
 
         Assert.Equal("vendedor1", sale.UsuarioNome);
+    }
+
+    [Fact]
+    public void RegisterSale_ThrowsWhenItemDescontoExceedsSubtotal()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        Assert.Throws<ArgumentException>(() =>
+            _service.RegisterSale(new[] { (product.Id, 1m, 9m) }, FormaPagamento.Cartao));
+    }
+
+    [Fact]
+    public void RegisterSale_ThrowsWhenDescontoVendaExceedsSubtotal()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        Assert.Throws<ArgumentException>(() =>
+            _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Cartao, descontoVenda: 9m));
+    }
+
+    [Fact]
+    public void RegisterSale_AppliesItemAndVendaDesconto_ComputesCorrectTotal()
+    {
+        var product = CreateProduct(precoVenda: 10m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        var sale = _service.RegisterSale(new[] { (product.Id, 2m, 4m) }, FormaPagamento.Cartao, descontoVenda: 3m);
+
+        Assert.Equal(3m, sale.DescontoValor);
+        Assert.Equal(4m, sale.Items.Single().DescontoValor);
+        Assert.Equal(13m, sale.Total);
+    }
+
+    [Fact]
+    public void RegisterSale_Dinheiro_ThrowsWhenValorRecebidoMissing()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        Assert.Throws<ArgumentException>(() =>
+            _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro));
+    }
+
+    [Fact]
+    public void RegisterSale_Dinheiro_ThrowsWhenValorRecebidoBelowTotal()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        Assert.Throws<ArgumentException>(() =>
+            _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 7m));
+    }
+
+    [Fact]
+    public void RegisterSale_Dinheiro_ComputesTroco()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 10m);
+
+        Assert.Equal(10m, sale.ValorRecebido);
+        Assert.Equal(2m, sale.Troco);
+    }
+
+    [Fact]
+    public void RegisterSale_NonDinheiro_IgnoresValorRecebido()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Cartao, valorRecebido: 50m);
+
+        Assert.Null(sale.ValorRecebido);
+        Assert.Null(sale.Troco);
+    }
+
+    [Fact]
+    public void RegisterSale_StoresAutorizadoPorWithoutRoleRevalidation()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m, 2m) }, FormaPagamento.Cartao, autorizadoPor: "qualquer-nome");
+
+        Assert.Equal("qualquer-nome", sale.AutorizadoPor);
     }
 }

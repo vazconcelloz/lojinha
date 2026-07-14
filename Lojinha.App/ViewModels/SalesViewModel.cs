@@ -169,8 +169,9 @@ public partial class SalesViewModel : ObservableObject
 
         try
         {
-            var itens = Carrinho.Select(i => (i.ProductId, i.Quantidade));
-            _salesService.RegisterSale(itens, FormaPagamentoSelecionada, _session.CurrentUser?.NomeUsuario);
+            var itens = Carrinho.Select(i => (i.ProductId, i.Quantidade, DescontoItem: 0m));
+            var valorRecebido = FormaPagamentoSelecionada == FormaPagamento.Dinheiro ? Total : (decimal?)null;
+            _salesService.RegisterSale(itens, FormaPagamentoSelecionada, _session.CurrentUser?.NomeUsuario, valorRecebido: valorRecebido);
             Carrinho.Clear();
             CarregarHistorico();
             _snackbar.Show("Sucesso", "Venda registrada.", ControlAppearance.Success);
