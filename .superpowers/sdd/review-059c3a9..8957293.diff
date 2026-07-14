@@ -1,0 +1,105 @@
+# Review package: 059c3a9..8957293
+
+## Commits
+8957293 feat: add discount and troco fields to VendaView
+
+## Files changed
+ Lojinha.App/Views/VendaView.xaml | 35 +++++++++++++++++++++++++++++------
+ 1 file changed, 29 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/Lojinha.App/Views/VendaView.xaml b/Lojinha.App/Views/VendaView.xaml
+index b41123d..5482e00 100644
+--- a/Lojinha.App/Views/VendaView.xaml
++++ b/Lojinha.App/Views/VendaView.xaml
+@@ -30,40 +30,61 @@
+             <ui:Card Margin="0,0,0,16">
+                 <StackPanel>
+                     <TextBlock Text="Carrinho" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
+                     <StackPanel Visibility="{Binding Carrinho.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                         <TextBlock Text="Carrinho vazio." Opacity="0.7" />
+                     </StackPanel>
+                     <DataGrid ItemsSource="{Binding Carrinho}" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="200"
+                               Visibility="{Binding Carrinho.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Invert}">
+                         <DataGrid.Columns>
+                             <DataGridTextColumn Header="Produto" Binding="{Binding Produto}" Width="*" />
+-                            <DataGridTextColumn Header="Quantidade" Binding="{Binding Quantidade}" Width="100" />
+-                            <DataGridTextColumn Header="Preço unit." Binding="{Binding PrecoUnitario}" Width="100" />
+-                            <DataGridTextColumn Header="Subtotal" Binding="{Binding Subtotal}" Width="100" />
++                            <DataGridTextColumn Header="Quantidade" Binding="{Binding Quantidade}" Width="90" />
++                            <DataGridTextColumn Header="Preço unit." Binding="{Binding PrecoUnitario}" Width="90" />
++                            <DataGridTemplateColumn Header="Desconto" Width="150">
++                                <DataGridTemplateColumn.CellTemplate>
++                                    <DataTemplate>
++                                        <StackPanel Orientation="Horizontal">
++                                            <ComboBox Width="70" ItemsSource="{Binding DataContext.TiposDesconto, RelativeSource={RelativeSource AncestorType=DataGrid}}"
++                                                      SelectedItem="{Binding DescontoTipo}" />
++                                            <ui:TextBox Width="70" Margin="4,0,0,0"
++                                                        Text="{Binding DescontoEntrada, UpdateSourceTrigger=PropertyChanged}" />
++                                        </StackPanel>
++                                    </DataTemplate>
++                                </DataGridTemplateColumn.CellTemplate>
++                            </DataGridTemplateColumn>
++                            <DataGridTextColumn Header="Total item" Binding="{Binding SubtotalComDesconto, StringFormat=C}" Width="100" />
+                             <DataGridTemplateColumn Header="" Width="60">
+                                 <DataGridTemplateColumn.CellTemplate>
+                                     <DataTemplate>
+                                         <ui:Button Appearance="Danger" Icon="{ui:SymbolIcon Symbol=Delete24}"
+                                                    Command="{Binding DataContext.RemoverDoCarrinhoCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    CommandParameter="{Binding}" />
+                                     </DataTemplate>
+                                 </DataGridTemplateColumn.CellTemplate>
+                             </DataGridTemplateColumn>
+                         </DataGrid.Columns>
+                     </DataGrid>
+                     <WrapPanel Margin="0,12,0,0">
+-                        <ComboBox Width="160" Margin="0,0,8,0" ItemsSource="{Binding FormasPagamento}"
++                        <ComboBox Width="90" Margin="0,0,4,8" ItemsSource="{Binding TiposDesconto}"
++                                  SelectedItem="{Binding TipoDescontoVenda}" />
++                        <ui:TextBox Width="90" Margin="0,0,8,8" PlaceholderText="Desconto"
++                                    Text="{Binding DescontoVendaEntrada, UpdateSourceTrigger=PropertyChanged}" />
++                        <ComboBox Width="160" Margin="0,0,8,8" ItemsSource="{Binding FormasPagamento}"
+                                   SelectedItem="{Binding FormaPagamentoSelecionada}" />
++                        <ui:TextBox Width="110" Margin="0,0,8,8" PlaceholderText="Valor recebido"
++                                    Visibility="{Binding EhDinheiro, Converter={StaticResource BooleanToVisibilityConverter}}"
++                                    Text="{Binding ValorRecebido, UpdateSourceTrigger=PropertyChanged}" />
++                        <TextBlock Text="{Binding Troco, StringFormat='Troco: {0:C}'}" VerticalAlignment="Center" Margin="0,0,8,8"
++                                   Visibility="{Binding EhDinheiro, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                         <TextBlock Text="{Binding Total, StringFormat='Total: {0:C}'}" FontWeight="Bold" FontSize="16"
+-                                   VerticalAlignment="Center" Margin="12,0,0,0" />
+-                        <ui:Button Content="Finalizar venda" Appearance="Primary" Margin="12,0,0,0"
++                                   VerticalAlignment="Center" Margin="12,0,0,8" />
++                        <ui:Button Content="Finalizar venda" Appearance="Primary" Margin="12,0,0,8"
+                                    Icon="{ui:SymbolIcon Symbol=ReceiptMoney24}"
+                                    Command="{Binding FinalizarVendaCommand}" />
+                     </WrapPanel>
+                 </StackPanel>
+             </ui:Card>
+ 
+             <ui:Card>
+                 <StackPanel>
+                     <TextBlock Text="Histórico de vendas" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
+                     <StackPanel Visibility="{Binding Historico.Count, Converter={StaticResource CountToVisibilityConverter}}">
+@@ -79,20 +100,22 @@
+                                     </DataTrigger>
+                                 </Style.Triggers>
+                             </Style>
+                         </DataGrid.RowStyle>
+                         <DataGrid.Columns>
+                             <DataGridTextColumn Header="Data" Binding="{Binding DataHora, StringFormat='dd/MM/yyyy HH:mm'}" Width="140" />
+                             <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat=C}" Width="100" />
+                             <DataGridTextColumn Header="Pagamento" Binding="{Binding FormaPagamento}" Width="100" />
+                             <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" />
+                             <DataGridTextColumn Header="Vendedor" Binding="{Binding UsuarioNome}" Width="120" />
++                            <DataGridTextColumn Header="Desconto" Binding="{Binding DescontoValor, StringFormat=C}" Width="90" />
++                            <DataGridTextColumn Header="Troco" Binding="{Binding Troco, StringFormat=C}" Width="90" />
+                             <DataGridTemplateColumn Header="" Width="140">
+                                 <DataGridTemplateColumn.CellTemplate>
+                                     <DataTemplate>
+                                         <ui:Button Content="Cancelar" Appearance="Danger" Icon="{ui:SymbolIcon Symbol=Dismiss24}"
+                                                    Command="{Binding DataContext.CancelarVendaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    CommandParameter="{Binding}">
+                                             <ui:Button.Visibility>
+                                                 <MultiBinding Converter="{StaticResource BooleanAndToVisibilityConverter}">
+                                                     <Binding Path="PodeCancelar" />
+                                                     <Binding Path="DataContext.PodeCancelarVenda" RelativeSource="{RelativeSource AncestorType=DataGrid}" />

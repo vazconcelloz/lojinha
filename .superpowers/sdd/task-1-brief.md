@@ -1,74 +1,88 @@
-### Task 1: `User`/`PapelUsuario` models, `DbContext` wiring, `Sale.UsuarioNome`, migration
+### Task 1: `TipoDesconto` enum, `Sale`/`SaleItem` model changes, migration
 
 **Files:**
-- Create: `Lojinha.Data/Models/PapelUsuario.cs`
-- Create: `Lojinha.Data/Models/User.cs`
-- Modify: `Lojinha.Data/LojinhaDbContext.cs`
+- Create: `Lojinha.Data/Models/TipoDesconto.cs`
 - Modify: `Lojinha.Data/Models/Sale.cs`
+- Modify: `Lojinha.Data/Models/SaleItem.cs`
+- Modify: `Lojinha.Data/LojinhaDbContext.cs`
 - Migration: generated under `Lojinha.Data/Migrations/`
 
 **Interfaces:**
-- Produces: `PapelUsuario` enum (`Admin`, `Vendedor`); `User` (`Id`, `NomeUsuario`, `SenhaHash`, `SenhaSalt`, `Papel`); `LojinhaDbContext.Users` `DbSet`; `Sale.UsuarioNome` (`string?`) — consumed by Task 2 (`UserService`) and Task 7 (`SalesService`).
+- Produces: `TipoDesconto` enum (`Valor`, `Percentual`); `Sale.DescontoValor` (`decimal`), `Sale.ValorRecebido` (`decimal?`), `Sale.Troco` (`decimal?`), `Sale.AutorizadoPor` (`string?`); `SaleItem.DescontoValor` (`decimal`) — consumed by Task 2 (`SalesService`) and Task 4 (`SalesViewModel`).
 
-- [ ] **Step 1: Create the `PapelUsuario` enum**
+- [ ] **Step 1: Create the `TipoDesconto` enum**
 
-Create `Lojinha.Data/Models/PapelUsuario.cs`:
-
-```csharp
-namespace Lojinha.Data.Models;
-
-public enum PapelUsuario
-{
-    Admin,
-    Vendedor
-}
-```
-
-- [ ] **Step 2: Create the `User` model**
-
-Create `Lojinha.Data/Models/User.cs`:
+Create `Lojinha.Data/Models/TipoDesconto.cs`:
 
 ```csharp
 namespace Lojinha.Data.Models;
 
-public class User
+public enum TipoDesconto
 {
-    public int Id { get; set; }
-    public required string NomeUsuario { get; set; }
-    public required byte[] SenhaHash { get; set; }
-    public required byte[] SenhaSalt { get; set; }
-    public PapelUsuario Papel { get; set; }
+    Valor,
+    Percentual
 }
 ```
 
-- [ ] **Step 3: Add `Sale.UsuarioNome`**
+- [ ] **Step 2: Add discount/payment fields to `Sale`**
 
-In `Lojinha.Data/Models/Sale.cs`, add this property after `DataCancelamento`:
+In `Lojinha.Data/Models/Sale.cs`, add these properties after `UsuarioNome`:
 
 ```csharp
-    public string? UsuarioNome { get; set; }
+    public decimal DescontoValor { get; set; }
+    public decimal? ValorRecebido { get; set; }
+    public decimal? Troco { get; set; }
+    public string? AutorizadoPor { get; set; }
 ```
 
-- [ ] **Step 4: Wire `User` into `LojinhaDbContext`**
+- [ ] **Step 3: Add discount field to `SaleItem`**
 
-In `Lojinha.Data/LojinhaDbContext.cs`, add a `DbSet` after `SaleItems`:
+In `Lojinha.Data/Models/SaleItem.cs`, add this property after `PrecoUnitario` (before the existing `Subtotal` computed property):
 
 ```csharp
-    public DbSet<User> Users => Set<User>();
+    public decimal DescontoValor { get; set; }
 ```
 
-Then, inside `OnModelCreating`, after the existing `SaleItem`/`Product` relationship configuration (before the closing brace of the method), add:
+Then add a computed property after the existing `Subtotal` property:
 
 ```csharp
-        modelBuilder.Entity<User>()
-            .HasIndex(u => u.NomeUsuario)
-            .IsUnique();
+    public decimal SubtotalComDesconto => Subtotal - DescontoValor;
+```
+
+- [ ] **Step 4: Wire precision configuration into `LojinhaDbContext`**
+
+In `Lojinha.Data/LojinhaDbContext.cs`, inside `OnModelCreating`, immediately after the existing block:
+
+```csharp
+        modelBuilder.Entity<SaleItem>()
+            .Property(i => i.PrecoUnitario)
+            .HasPrecision(10, 2);
+```
+
+add:
+
+```csharp
+        modelBuilder.Entity<SaleItem>()
+            .Property(i => i.DescontoValor)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<Sale>()
+            .Property(s => s.DescontoValor)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<Sale>()
+            .Property(s => s.ValorRecebido)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<Sale>()
+            .Property(s => s.Troco)
+            .HasPrecision(10, 2);
 ```
 
 - [ ] **Step 5: Generate the EF Core migration**
 
-Run: `dotnet ef migrations add AddUsers --project Lojinha.Data`
-Expected: no errors; two new files appear under `Lojinha.Data/Migrations/` (a new `..._AddUsers.cs` migration + matching `.Designer.cs`), and `Lojinha.Data/Migrations/LojinhaDbContextModelSnapshot.cs` is updated to include the `Users` table and `Sale.UsuarioNome` column.
+Run: `dotnet ef migrations add AddDescontoTroco --project Lojinha.Data`
+Expected: no errors; two new files appear under `Lojinha.Data/Migrations/` (a new `..._AddDescontoTroco.cs` migration + matching `.Designer.cs`), and `Lojinha.Data/Migrations/LojinhaDbContextModelSnapshot.cs` is updated with the new columns.
 
 - [ ] **Step 6: Build**
 
@@ -78,13 +92,13 @@ Expected: `Compilação com êxito. 0 Erro(s)`
 - [ ] **Step 7: Run the full test suite**
 
 Run: `dotnet test`
-Expected: PASS, 42 tests total (unchanged — this task adds no tests, just schema).
+Expected: PASS, 54 tests total (unchanged — this task adds no tests, just schema).
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add Lojinha.Data/Models/PapelUsuario.cs Lojinha.Data/Models/User.cs Lojinha.Data/Models/Sale.cs Lojinha.Data/LojinhaDbContext.cs Lojinha.Data/Migrations
-git commit -m "feat: add User/PapelUsuario models, Sale.UsuarioNome, and migration"
+git add Lojinha.Data/Models/TipoDesconto.cs Lojinha.Data/Models/Sale.cs Lojinha.Data/Models/SaleItem.cs Lojinha.Data/LojinhaDbContext.cs Lojinha.Data/Migrations
+git commit -m "feat: add TipoDesconto enum and Sale/SaleItem discount and troco fields"
 ```
 
 ---

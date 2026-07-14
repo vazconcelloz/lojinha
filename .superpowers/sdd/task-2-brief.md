@@ -1,320 +1,387 @@
-### Task 2: `UserService`
+### Task 2: `SalesService.RegisterSale` — discount, valor recebido, troco, autorização
 
 **Files:**
-- Create: `Lojinha.Services/UserService.cs`
-- Test: `Lojinha.Services.Tests/UserServiceTests.cs`
+- Modify: `Lojinha.Services/SalesService.cs`
+- Test: `Lojinha.Services.Tests/SalesServiceTests.cs`
+- Modify: `Lojinha.App/ViewModels/SalesViewModel.cs` (minimal compatibility fix, see Step 7 — full wiring lands in Task 4)
 
 **Interfaces:**
-- Produces: `UserService.Add(string nomeUsuario, string senha, PapelUsuario papel) : User`, `UserService.Update(int id, string nomeUsuario, string? novaSenha, PapelUsuario papel)`, `UserService.Delete(int id)`, `UserService.GetAll() : IEnumerable<User>`, `UserService.AnyUsers() : bool`, `UserService.Authenticate(string nomeUsuario, string senha) : User` — consumed by Task 3 onward.
+- Consumes: `Sale.DescontoValor`/`ValorRecebido`/`Troco`/`AutorizadoPor`, `SaleItem.DescontoValor` (Task 1).
+- Produces: `SalesService.RegisterSale(IEnumerable<(int ProductId, decimal Quantidade, decimal DescontoItem)> itens, FormaPagamento formaPagamento, string? usuarioNome = null, decimal descontoVenda = 0, decimal? valorRecebido = null, string? autorizadoPor = null)` — consumed by Task 4 (`SalesViewModel.FinalizarVenda`).
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Step 1: Update existing test call sites to the new 3-element item tuple**
 
-Create `Lojinha.Services.Tests/UserServiceTests.cs`:
+In `Lojinha.Services.Tests/SalesServiceTests.cs`, every existing call to `_service.RegisterSale` passes 2-element item tuples (`(product.Id, 3m)`). Update each to a 3-element tuple with `0m` as the (unused, for these tests) discount, and add a `valorRecebido` for every existing Dinheiro call (the new validation requires it). Apply these exact replacements:
 
+Replace:
 ```csharp
-using Lojinha.Data;
-using Lojinha.Data.Models;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
-using Xunit;
-
-namespace Lojinha.Services.Tests;
-
-public class UserServiceTests : IDisposable
-{
-    private readonly SqliteConnection _connection;
-    private readonly LojinhaDbContext _context;
-    private readonly UserService _service;
-
-    public UserServiceTests()
-    {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-
-        var options = new DbContextOptionsBuilder<LojinhaDbContext>()
-            .UseSqlite(_connection)
-            .Options;
-
-        _context = new LojinhaDbContext(options);
-        _context.Database.EnsureCreated();
-
-        _service = new UserService(_context);
-    }
-
-    public void Dispose()
-    {
-        _context.Dispose();
-        _connection.Dispose();
-    }
-
-    [Fact]
-    public void AnyUsers_ReturnsFalseWhenNoUsersExist()
-    {
-        Assert.False(_service.AnyUsers());
-    }
-
-    [Fact]
-    public void Add_CreatesUserWithHashedPassword()
-    {
-        var user = _service.Add("admin", "senha123", PapelUsuario.Admin);
-
-        Assert.True(user.Id > 0);
-        Assert.Equal("admin", user.NomeUsuario);
-        Assert.Equal(PapelUsuario.Admin, user.Papel);
-        Assert.Equal(32, user.SenhaHash.Length);
-        Assert.Equal(16, user.SenhaSalt.Length);
-        Assert.True(_service.AnyUsers());
-    }
-
-    [Fact]
-    public void Add_ThrowsWhenUsernameAlreadyExists()
-    {
-        _service.Add("admin", "senha123", PapelUsuario.Admin);
-
-        Assert.Throws<InvalidOperationException>(() => _service.Add("admin", "outrasenha", PapelUsuario.Vendedor));
-    }
-
-    [Fact]
-    public void Authenticate_ReturnsUserWithCorrectCredentials()
-    {
-        _service.Add("admin", "senha123", PapelUsuario.Admin);
-
-        var user = _service.Authenticate("admin", "senha123");
-
-        Assert.Equal("admin", user.NomeUsuario);
-    }
-
-    [Fact]
-    public void Authenticate_ThrowsWithWrongPassword()
-    {
-        _service.Add("admin", "senha123", PapelUsuario.Admin);
-
-        Assert.Throws<InvalidOperationException>(() => _service.Authenticate("admin", "senhaerrada"));
-    }
-
-    [Fact]
-    public void Authenticate_ThrowsWithUnknownUsername()
-    {
-        Assert.Throws<InvalidOperationException>(() => _service.Authenticate("naoexiste", "senha123"));
-    }
-
-    [Fact]
-    public void Update_WithoutNewPassword_KeepsOldPasswordWorking()
-    {
-        var user = _service.Add("admin", "senha123", PapelUsuario.Admin);
-
-        _service.Update(user.Id, "admin2", null, PapelUsuario.Admin);
-
-        var autenticado = _service.Authenticate("admin2", "senha123");
-        Assert.Equal("admin2", autenticado.NomeUsuario);
-    }
-
-    [Fact]
-    public void Update_WithNewPassword_InvalidatesOldPassword()
-    {
-        var user = _service.Add("admin", "senha123", PapelUsuario.Admin);
-
-        _service.Update(user.Id, "admin", "novasenha", PapelUsuario.Admin);
-
-        Assert.Throws<InvalidOperationException>(() => _service.Authenticate("admin", "senha123"));
-        var autenticado = _service.Authenticate("admin", "novasenha");
-        Assert.Equal("admin", autenticado.NomeUsuario);
-    }
-
-    [Fact]
-    public void Delete_RemovesUserWhenNotLastAdmin()
-    {
-        _service.Add("admin1", "senha123", PapelUsuario.Admin);
-        var admin2 = _service.Add("admin2", "senha456", PapelUsuario.Admin);
-
-        _service.Delete(admin2.Id);
-
-        Assert.Single(_service.GetAll());
-    }
-
-    [Fact]
-    public void Delete_ThrowsWhenDeletingLastAdmin()
-    {
-        var admin = _service.Add("admin", "senha123", PapelUsuario.Admin);
-
-        Assert.Throws<InvalidOperationException>(() => _service.Delete(admin.Id));
-    }
-
-    [Fact]
-    public void Delete_RemovesVendedorFreely()
-    {
-        _service.Add("admin", "senha123", PapelUsuario.Admin);
-        var vendedor = _service.Add("vendedor1", "senha456", PapelUsuario.Vendedor);
-
-        _service.Delete(vendedor.Id);
-
-        Assert.Single(_service.GetAll());
-    }
-}
+        Assert.Throws<ArgumentException>(() => _service.RegisterSale(Array.Empty<(int, decimal)>(), FormaPagamento.Dinheiro));
+```
+with:
+```csharp
+        Assert.Throws<ArgumentException>(() => _service.RegisterSale(Array.Empty<(int, decimal, decimal)>(), FormaPagamento.Dinheiro));
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+Replace:
+```csharp
+        Assert.Throws<ArgumentException>(() => _service.RegisterSale(new[] { (product.Id, 0m) }, FormaPagamento.Dinheiro));
+```
+with:
+```csharp
+        Assert.Throws<ArgumentException>(() => _service.RegisterSale(new[] { (product.Id, 0m, 0m) }, FormaPagamento.Dinheiro));
+```
 
-Run: `dotnet test --filter "FullyQualifiedName~UserServiceTests"`
-Expected: build error (`UserService` doesn't exist yet).
+Replace:
+```csharp
+        var sale = _service.RegisterSale(new[] { (product.Id, 3m) }, FormaPagamento.Dinheiro);
 
-- [ ] **Step 3: Implement `UserService`**
+        Assert.Equal(24m, sale.Total);
+```
+with:
+```csharp
+        var sale = _service.RegisterSale(new[] { (product.Id, 3m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 24m);
 
-Create `Lojinha.Services/UserService.cs`:
+        Assert.Equal(24m, sale.Total);
+```
+
+Replace:
+```csharp
+        var sale = _service.RegisterSale(new[] { (product1.Id, 2m), (product2.Id, 4m) }, FormaPagamento.Cartao);
+```
+with:
+```csharp
+        var sale = _service.RegisterSale(new[] { (product1.Id, 2m, 0m), (product2.Id, 4m, 0m) }, FormaPagamento.Cartao);
+```
+
+Replace:
+```csharp
+        Assert.Throws<InvalidOperationException>(() =>
+            _service.RegisterSale(new[] { (product1.Id, 2m), (product2.Id, 5m) }, FormaPagamento.Pix));
+```
+with:
+```csharp
+        Assert.Throws<InvalidOperationException>(() =>
+            _service.RegisterSale(new[] { (product1.Id, 2m, 0m), (product2.Id, 5m, 0m) }, FormaPagamento.Pix));
+```
+
+Replace:
+```csharp
+        _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Dinheiro);
+
+        product.PrecoVenda = 20m;
+```
+with:
+```csharp
+        _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 8m);
+
+        product.PrecoVenda = 20m;
+```
+
+Replace:
+```csharp
+        var sale = _service.RegisterSale(new[] { (product.Id, 4m) }, FormaPagamento.Dinheiro);
+
+        _service.CancelSale(sale.Id);
+```
+with:
+```csharp
+        var sale = _service.RegisterSale(new[] { (product.Id, 4m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 32m);
+
+        _service.CancelSale(sale.Id);
+```
+
+Replace:
+```csharp
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Dinheiro);
+        _service.CancelSale(sale.Id);
+
+        Assert.Throws<InvalidOperationException>(() => _service.CancelSale(sale.Id));
+```
+with:
+```csharp
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 8m);
+        _service.CancelSale(sale.Id);
+
+        Assert.Throws<InvalidOperationException>(() => _service.CancelSale(sale.Id));
+```
+
+Replace:
+```csharp
+        var sale1 = _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Dinheiro);
+        var sale2 = _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Cartao);
+```
+with:
+```csharp
+        var sale1 = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 8m);
+        var sale2 = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Cartao);
+```
+
+Replace:
+```csharp
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Dinheiro, "vendedor1");
+
+        Assert.Equal("vendedor1", sale.UsuarioNome);
+```
+with:
+```csharp
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, "vendedor1", valorRecebido: 8m);
+
+        Assert.Equal("vendedor1", sale.UsuarioNome);
+```
+
+- [ ] **Step 2: Add new failing tests for discount/troco/authorization behavior**
+
+Append these to `SalesServiceTests.cs`, before the closing `}` of the class:
 
 ```csharp
-using System.Security.Cryptography;
-using System.Text;
-using Lojinha.Data;
-using Lojinha.Data.Models;
-
-namespace Lojinha.Services;
-
-public class UserService
-{
-    private const int SaltSize = 16;
-    private const int HashSize = 32;
-    private const int Iterations = 100_000;
-
-    private readonly LojinhaDbContext _context;
-
-    public UserService(LojinhaDbContext context)
+    [Fact]
+    public void RegisterSale_ThrowsWhenItemDescontoExceedsSubtotal()
     {
-        _context = context;
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        Assert.Throws<ArgumentException>(() =>
+            _service.RegisterSale(new[] { (product.Id, 1m, 9m) }, FormaPagamento.Cartao));
     }
 
-    public bool AnyUsers()
+    [Fact]
+    public void RegisterSale_ThrowsWhenDescontoVendaExceedsSubtotal()
     {
-        return _context.Users.Any();
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        Assert.Throws<ArgumentException>(() =>
+            _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Cartao, descontoVenda: 9m));
     }
 
-    public User Add(string nomeUsuario, string senha, PapelUsuario papel)
+    [Fact]
+    public void RegisterSale_AppliesItemAndVendaDesconto_ComputesCorrectTotal()
     {
-        if (string.IsNullOrWhiteSpace(nomeUsuario))
+        var product = CreateProduct(precoVenda: 10m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        var sale = _service.RegisterSale(new[] { (product.Id, 2m, 4m) }, FormaPagamento.Cartao, descontoVenda: 3m);
+
+        Assert.Equal(3m, sale.DescontoValor);
+        Assert.Equal(4m, sale.Items.Single().DescontoValor);
+        Assert.Equal(13m, sale.Total);
+    }
+
+    [Fact]
+    public void RegisterSale_Dinheiro_ThrowsWhenValorRecebidoMissing()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        Assert.Throws<ArgumentException>(() =>
+            _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro));
+    }
+
+    [Fact]
+    public void RegisterSale_Dinheiro_ThrowsWhenValorRecebidoBelowTotal()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        Assert.Throws<ArgumentException>(() =>
+            _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 7m));
+    }
+
+    [Fact]
+    public void RegisterSale_Dinheiro_ComputesTroco()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 10m);
+
+        Assert.Equal(10m, sale.ValorRecebido);
+        Assert.Equal(2m, sale.Troco);
+    }
+
+    [Fact]
+    public void RegisterSale_NonDinheiro_IgnoresValorRecebido()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m, 0m) }, FormaPagamento.Cartao, valorRecebido: 50m);
+
+        Assert.Null(sale.ValorRecebido);
+        Assert.Null(sale.Troco);
+    }
+
+    [Fact]
+    public void RegisterSale_StoresAutorizadoPorWithoutRoleRevalidation()
+    {
+        var product = CreateProduct(precoVenda: 8m);
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m, 2m) }, FormaPagamento.Cartao, autorizadoPor: "qualquer-nome");
+
+        Assert.Equal("qualquer-nome", sale.AutorizadoPor);
+    }
+```
+
+- [ ] **Step 3: Run tests to verify the expected build failure**
+
+Run: `dotnet test --filter "FullyQualifiedName~SalesServiceTests"`
+Expected: build FAILS — `SalesServiceTests.cs` now calls `RegisterSale` with 3-element tuples and new named parameters that `SalesService.RegisterSale` (still on its old 2-tuple signature) doesn't have. This compile error is the expected RED state.
+
+- [ ] **Step 4: Implement the new `RegisterSale` signature and validation**
+
+In `Lojinha.Services/SalesService.cs`, replace the entire `RegisterSale` method with:
+
+```csharp
+    public Sale RegisterSale(
+        IEnumerable<(int ProductId, decimal Quantidade, decimal DescontoItem)> itens,
+        FormaPagamento formaPagamento,
+        string? usuarioNome = null,
+        decimal descontoVenda = 0,
+        decimal? valorRecebido = null,
+        string? autorizadoPor = null)
+    {
+        var itensList = itens.ToList();
+        if (itensList.Count == 0)
         {
-            throw new ArgumentException("Nome de usuário é obrigatório.", nameof(nomeUsuario));
+            throw new ArgumentException("Adicione ao menos um item à venda.", nameof(itens));
         }
 
-        if (string.IsNullOrWhiteSpace(senha))
+        foreach (var item in itensList)
         {
-            throw new ArgumentException("Senha é obrigatória.", nameof(senha));
+            if (item.Quantidade <= 0)
+            {
+                throw new ArgumentException("Quantidade deve ser maior que zero.", nameof(itens));
+            }
         }
 
-        if (_context.Users.Any(u => u.NomeUsuario == nomeUsuario))
+        var quantidadePorProduto = itensList
+            .GroupBy(i => i.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantidade));
+
+        var produtos = new Dictionary<int, Product>();
+        foreach (var produtoId in quantidadePorProduto.Keys)
         {
-            throw new InvalidOperationException($"Já existe um usuário com o nome '{nomeUsuario}'.");
+            var produto = _context.Products.Find(produtoId)
+                ?? throw new InvalidOperationException("Produto não encontrado.");
+            produtos[produtoId] = produto;
+
+            if (_stockService.GetCurrentStock(produtoId) < quantidadePorProduto[produtoId])
+            {
+                throw new InvalidOperationException($"Estoque insuficiente para '{produto.Nome}'. Disponível: {_stockService.GetCurrentStock(produtoId)}.");
+            }
         }
 
-        var (hash, salt) = HashSenha(senha);
-
-        var user = new User
+        var sale = new Sale
         {
-            NomeUsuario = nomeUsuario,
-            SenhaHash = hash,
-            SenhaSalt = salt,
-            Papel = papel
+            DataHora = DateTime.Now,
+            FormaPagamento = formaPagamento,
+            Cancelada = false,
+            UsuarioNome = usuarioNome
         };
 
-        _context.Users.Add(user);
+        decimal subtotalCarrinho = 0;
+        foreach (var item in itensList)
+        {
+            var produto = produtos[item.ProductId];
+            var itemSubtotal = item.Quantidade * produto.PrecoVenda;
+
+            if (item.DescontoItem < 0 || item.DescontoItem > itemSubtotal)
+            {
+                throw new ArgumentException("Desconto do item não pode ser maior que o subtotal.", nameof(itens));
+            }
+
+            var saleItem = new SaleItem
+            {
+                ProductId = item.ProductId,
+                Quantidade = item.Quantidade,
+                PrecoUnitario = produto.PrecoVenda,
+                DescontoValor = item.DescontoItem
+            };
+            sale.Items.Add(saleItem);
+            subtotalCarrinho += itemSubtotal - item.DescontoItem;
+        }
+
+        if (descontoVenda < 0 || descontoVenda > subtotalCarrinho)
+        {
+            throw new ArgumentException("Desconto da venda não pode ser maior que o subtotal.", nameof(descontoVenda));
+        }
+
+        sale.DescontoValor = descontoVenda;
+        sale.Total = subtotalCarrinho - descontoVenda;
+        sale.AutorizadoPor = autorizadoPor;
+
+        if (formaPagamento == FormaPagamento.Dinheiro)
+        {
+            if (valorRecebido is null || valorRecebido < sale.Total)
+            {
+                throw new ArgumentException("Valor recebido é obrigatório e deve ser maior ou igual ao total.", nameof(valorRecebido));
+            }
+            sale.ValorRecebido = valorRecebido;
+            sale.Troco = valorRecebido.Value - sale.Total;
+        }
+
+        _context.Sales.Add(sale);
+
+        foreach (var item in itensList)
+        {
+            _stockService.DeductStock(item.ProductId, item.Quantidade);
+        }
+
         _context.SaveChanges();
-        return user;
+
+        return sale;
     }
-
-    public void Update(int id, string nomeUsuario, string? novaSenha, PapelUsuario papel)
-    {
-        if (string.IsNullOrWhiteSpace(nomeUsuario))
-        {
-            throw new ArgumentException("Nome de usuário é obrigatório.", nameof(nomeUsuario));
-        }
-
-        if (_context.Users.Any(u => u.NomeUsuario == nomeUsuario && u.Id != id))
-        {
-            throw new InvalidOperationException($"Já existe um usuário com o nome '{nomeUsuario}'.");
-        }
-
-        var user = _context.Users.Find(id);
-        if (user is null)
-        {
-            throw new InvalidOperationException("Usuário não encontrado.");
-        }
-
-        user.NomeUsuario = nomeUsuario;
-        user.Papel = papel;
-
-        if (!string.IsNullOrWhiteSpace(novaSenha))
-        {
-            var (hash, salt) = HashSenha(novaSenha);
-            user.SenhaHash = hash;
-            user.SenhaSalt = salt;
-        }
-
-        _context.SaveChanges();
-    }
-
-    public void Delete(int id)
-    {
-        var user = _context.Users.Find(id);
-        if (user is null)
-        {
-            throw new InvalidOperationException("Usuário não encontrado.");
-        }
-
-        if (user.Papel == PapelUsuario.Admin && _context.Users.Count(u => u.Papel == PapelUsuario.Admin) <= 1)
-        {
-            throw new InvalidOperationException("Não é possível excluir o último administrador.");
-        }
-
-        _context.Users.Remove(user);
-        _context.SaveChanges();
-    }
-
-    public IEnumerable<User> GetAll()
-    {
-        return _context.Users.ToList();
-    }
-
-    public User Authenticate(string nomeUsuario, string senha)
-    {
-        var user = _context.Users.FirstOrDefault(u => u.NomeUsuario == nomeUsuario);
-        if (user is null)
-        {
-            throw new InvalidOperationException("Usuário ou senha inválidos.");
-        }
-
-        var hashCalculado = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(senha), user.SenhaSalt, Iterations, HashAlgorithmName.SHA256, HashSize);
-
-        if (!CryptographicOperations.FixedTimeEquals(hashCalculado, user.SenhaHash))
-        {
-            throw new InvalidOperationException("Usuário ou senha inválidos.");
-        }
-
-        return user;
-    }
-
-    private static (byte[] Hash, byte[] Salt) HashSenha(string senha)
-    {
-        var salt = RandomNumberGenerator.GetBytes(SaltSize);
-        var hash = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(senha), salt, Iterations, HashAlgorithmName.SHA256, HashSize);
-        return (hash, salt);
-    }
-}
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [ ] **Step 5: Run tests to verify GREEN**
 
-Run: `dotnet test --filter "FullyQualifiedName~UserServiceTests"`
-Expected: PASS, 10 tests total for this class.
+Run: `dotnet test --filter "FullyQualifiedName~SalesServiceTests"`
+Expected: PASS, 19/19 (11 existing + 8 new) for the class.
 
-- [ ] **Step 5: Run the full test suite**
+- [ ] **Step 6: Confirm the App-side build break**
+
+Run: `dotnet build`
+Expected: FAILS — `Lojinha.App/ViewModels/SalesViewModel.cs` reports a compile error on its `RegisterSale` call (tuple arity mismatch), because `FinalizarVenda` still calls the old 2-tuple overload. This is expected; Step 7 is the minimal fix that resolves it (`Lojinha.Services` and `Lojinha.Services.Tests` alone already build and pass at this point — only the `Lojinha.App` project is currently broken).
+
+- [ ] **Step 7: Minimal compatibility fix to `SalesViewModel.FinalizarVenda`**
+
+This is *not* the full discount/authorization UI wiring — that's Task 4. This step only keeps `Lojinha.App` building and functionally correct with zero discount support in the interim.
+
+In `Lojinha.App/ViewModels/SalesViewModel.cs`, replace:
+
+```csharp
+        try
+        {
+            var itens = Carrinho.Select(i => (i.ProductId, i.Quantidade));
+            _salesService.RegisterSale(itens, FormaPagamentoSelecionada, _session.CurrentUser?.NomeUsuario);
+```
+
+with:
+
+```csharp
+        try
+        {
+            var itens = Carrinho.Select(i => (i.ProductId, i.Quantidade, DescontoItem: 0m));
+            var valorRecebido = FormaPagamentoSelecionada == FormaPagamento.Dinheiro ? Total : (decimal?)null;
+            _salesService.RegisterSale(itens, FormaPagamentoSelecionada, _session.CurrentUser?.NomeUsuario, valorRecebido: valorRecebido);
+```
+
+- [ ] **Step 8: Run the full test suite again**
 
 Run: `dotnet test`
-Expected: PASS, 52 tests total.
+Expected: PASS, 62 tests total.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 9: Build**
+
+Run: `dotnet build`
+Expected: `Compilação com êxito. 0 Erro(s)`
+
+- [ ] **Step 10: Commit**
 
 ```bash
-git add Lojinha.Services/UserService.cs Lojinha.Services.Tests/UserServiceTests.cs
-git commit -m "feat: add UserService (PBKDF2 password hashing, last-admin guard)"
+git add Lojinha.Services/SalesService.cs Lojinha.Services.Tests/SalesServiceTests.cs Lojinha.App/ViewModels/SalesViewModel.cs
+git commit -m "feat: add discount, valor recebido, and troco to SalesService.RegisterSale"
 ```
 
 ---
