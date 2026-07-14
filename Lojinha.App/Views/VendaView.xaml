@@ -31,17 +31,17 @@
                     <StackPanel>
                         <TextBlock Text="Nova venda" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
                         <WrapPanel>
-                            <ui:TextBox Width="220" Margin="0,0,8,8" PlaceholderText="Buscar produto (nome ou código)"
+                            <ui:TextBox Width="240" Height="40" FontSize="16" Margin="0,0,8,8" PlaceholderText="Buscar produto (nome ou código)"
                                         Text="{Binding TermoBusca, UpdateSourceTrigger=PropertyChanged}">
                                 <ui:TextBox.InputBindings>
                                     <KeyBinding Key="Return" Command="{Binding EscanearCommand}" />
                                 </ui:TextBox.InputBindings>
                             </ui:TextBox>
-                            <ComboBox Width="220" Margin="0,0,8,8" ItemsSource="{Binding Produtos}" DisplayMemberPath="Nome"
+                            <ComboBox Width="240" Height="40" FontSize="16" Margin="0,0,8,8" ItemsSource="{Binding Produtos}" DisplayMemberPath="Nome"
                                       SelectedItem="{Binding ProdutoSelecionado}" />
-                            <ui:TextBox Width="120" Margin="0,0,8,8" PlaceholderText="Quantidade"
+                            <ui:TextBox Width="130" Height="40" FontSize="16" Margin="0,0,8,8" PlaceholderText="Quantidade"
                                         Text="{Binding Quantidade, UpdateSourceTrigger=PropertyChanged}" />
-                            <ui:Button Content="Adicionar ao carrinho" Appearance="Primary" Icon="{ui:SymbolIcon Symbol=Add24}"
+                            <ui:Button Content="Adicionar ao carrinho" Appearance="Primary" FontSize="16" Padding="16,10" Icon="{ui:SymbolIcon Symbol=Add24}"
                                        Command="{Binding AdicionarAoCarrinhoCommand}" />
                         </WrapPanel>
                     </StackPanel>
@@ -54,6 +54,7 @@
                             <TextBlock Text="Carrinho vazio." Opacity="0.7" />
                         </StackPanel>
                         <DataGrid ItemsSource="{Binding Carrinho}" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="320"
+                                  RowHeight="36" FontSize="14"
                                   Visibility="{Binding Carrinho.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Invert}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Produto" Binding="{Binding Produto}" Width="*" />
@@ -91,32 +92,33 @@
                 <StackPanel>
                     <TextBlock Text="RESUMO DA VENDA" FontWeight="Bold" FontSize="14" Margin="0,0,0,16" />
 
-                    <TextBlock Text="Desconto da venda" Margin="0,0,0,4" Opacity="0.7" />
+                    <TextBlock Text="Desconto da venda" FontSize="14" Margin="0,0,0,4" Opacity="0.7" />
                     <WrapPanel Margin="0,0,0,12">
-                        <ComboBox Width="90" Margin="0,0,8,0" ItemsSource="{Binding TiposDesconto}"
+                        <ComboBox Width="90" Height="40" FontSize="16" Margin="0,0,8,0" ItemsSource="{Binding TiposDesconto}"
                                   SelectedItem="{Binding TipoDescontoVenda}" />
-                        <ui:TextBox Width="90" Text="{Binding DescontoVendaEntrada, UpdateSourceTrigger=PropertyChanged}" />
+                        <ui:TextBox Width="90" Height="40" FontSize="16" Text="{Binding DescontoVendaEntrada, UpdateSourceTrigger=PropertyChanged}" />
                     </WrapPanel>
 
-                    <TextBlock Text="Forma de pagamento" Margin="0,0,0,4" Opacity="0.7" />
-                    <ComboBox Margin="0,0,0,12" ItemsSource="{Binding FormasPagamento}"
+                    <TextBlock Text="Forma de pagamento" FontSize="14" Margin="0,0,0,4" Opacity="0.7" />
+                    <ComboBox Height="40" FontSize="16" Margin="0,0,0,12" ItemsSource="{Binding FormasPagamento}"
                               SelectedItem="{Binding FormaPagamentoSelecionada}" />
 
                     <StackPanel Visibility="{Binding EhDinheiro, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <TextBlock Text="Valor recebido" Margin="0,0,0,4" Opacity="0.7" />
-                        <ui:TextBox Margin="0,0,0,12" Text="{Binding ValorRecebido, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="Valor recebido" FontSize="14" Margin="0,0,0,4" Opacity="0.7" />
+                        <ui:TextBox Height="40" FontSize="16" Margin="0,0,0,12" Text="{Binding ValorRecebido, UpdateSourceTrigger=PropertyChanged}" />
                     </StackPanel>
 
                     <Separator Margin="0,0,0,12" />
 
-                    <TextBlock Text="{Binding Total, StringFormat='{}{0:C}'}" FontWeight="Bold" FontSize="30"
+                    <TextBlock Text="{Binding Total, StringFormat='{}{0:C}'}" FontWeight="Bold" FontSize="36"
                                HorizontalAlignment="Center" Margin="0,0,0,8" />
 
-                    <TextBlock Text="{Binding Troco, StringFormat='Troco: {0:C}'}" HorizontalAlignment="Center"
+                    <TextBlock Text="{Binding Troco, StringFormat='Troco: {0:C}'}" HorizontalAlignment="Center" FontSize="14"
                                Opacity="0.7" Margin="0,0,0,16"
                                Visibility="{Binding EhDinheiro, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                     <ui:Button Content="Finalizar venda" Appearance="Primary" HorizontalAlignment="Stretch"
+                               FontSize="18" Height="50"
                                Icon="{ui:SymbolIcon Symbol=ReceiptMoney24}"
                                Command="{Binding FinalizarVendaCommand}" />
                 </StackPanel>
