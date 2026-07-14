@@ -7,7 +7,7 @@
              mc:Ignorable="d">
     <ScrollViewer Margin="20" VerticalScrollBarVisibility="Auto">
         <StackPanel>
-            <ui:Card Margin="0,0,0,16">
+            <ui:Card Margin="0,0,0,16" Visibility="{Binding PodeGerenciarEstoque, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel>
                     <TextBlock Text="Entrada de lote" FontWeight="Bold" FontSize="16" Margin="0,0,0,12" />
                     <WrapPanel>
@@ -78,6 +78,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ui:Button Appearance="Danger" Icon="{ui:SymbolIcon Symbol=Delete24}"
+                                                   Visibility="{Binding DataContext.PodeGerenciarEstoque, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                    Command="{Binding DataContext.ExcluirLoteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                    CommandParameter="{Binding}" />
                                     </DataTemplate>
