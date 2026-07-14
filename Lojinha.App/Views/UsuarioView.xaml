@@ -16,7 +16,7 @@
                 <ui:TextBox Width="200" PlaceholderText="Nome de usuário"
                             Text="{Binding NomeUsuario, UpdateSourceTrigger=PropertyChanged}" />
                 <ui:PasswordBox Width="200" Margin="12,0,0,0" PlaceholderText="Senha"
-                                Password="{Binding Senha, UpdateSourceTrigger=PropertyChanged}" />
+                                Password="{Binding Senha, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 <ComboBox Width="130" Margin="12,0,0,0" ItemsSource="{Binding Papeis}"
                           SelectedItem="{Binding PapelSelecionado}" />
                 <ui:Button Content="Adicionar" Margin="12,0,0,0" Appearance="Primary"

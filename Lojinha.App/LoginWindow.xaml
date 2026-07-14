@@ -29,7 +29,7 @@
             <ui:TextBox PlaceholderText="Nome de usuário" Margin="0,0,0,8"
                         Text="{Binding NomeUsuario, UpdateSourceTrigger=PropertyChanged}" />
             <ui:PasswordBox PlaceholderText="Senha" Margin="0,0,0,8"
-                            Password="{Binding Senha, UpdateSourceTrigger=PropertyChanged}" />
+                            Password="{Binding Senha, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
             <TextBlock Text="{Binding MensagemErro}" Foreground="Red" Margin="0,0,0,8" TextWrapping="Wrap" />
 
