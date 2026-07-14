@@ -1,0 +1,1494 @@
+# Review package: 9e7220b..e33b340
+
+## Commits
+e33b340 feat: add CaixaService for cash-session open/close and movements
+35f835a chore: preserve context (controle de caixa Task 1)
+
+## Files changed
+ .superpowers/sdd/cc-task-1-brief.md           | 153 +++++
+ .superpowers/sdd/cc-task-1-report.md          | 119 ++++
+ .superpowers/sdd/progress.md                  |   3 +
+ .superpowers/sdd/review-106b730..9e7220b.diff | 792 ++++++++++++++++++++++++++
+ Lojinha.Services.Tests/CaixaServiceTests.cs   | 248 ++++++++
+ Lojinha.Services/CaixaService.cs              | 118 ++++
+ 6 files changed, 1433 insertions(+)
+
+## Diff
+diff --git a/.superpowers/sdd/cc-task-1-brief.md b/.superpowers/sdd/cc-task-1-brief.md
+new file mode 100644
+index 0000000..2152750
+--- /dev/null
++++ b/.superpowers/sdd/cc-task-1-brief.md
+@@ -0,0 +1,153 @@
++### Task 1: `CaixaSessao`/`MovimentoCaixa` models, `DbContext` wiring, migration
++
++**Files:**
++- Create: `Lojinha.Data/Models/TipoMovimentoCaixa.cs`
++- Create: `Lojinha.Data/Models/CaixaSessao.cs`
++- Create: `Lojinha.Data/Models/MovimentoCaixa.cs`
++- Modify: `Lojinha.Data/LojinhaDbContext.cs`
++- Migration: generated under `Lojinha.Data/Migrations/`
++
++**Interfaces:**
++- Produces: `TipoMovimentoCaixa` enum (`Sangria`, `Suprimento`); `CaixaSessao` (`Id`, `DataAbertura`, `ValorAbertura`, `UsuarioAbertura`, `DataFechamento`, `ValorContado`, `ValorEsperado`, `Diferenca`, `UsuarioFechamento`, `Movimentos`); `MovimentoCaixa` (`Id`, `CaixaSessaoId`, `CaixaSessao`, `Tipo`, `Valor`, `DataHora`, `AutorizadoPor`, `Observacao`); `LojinhaDbContext.CaixaSessoes`/`MovimentosCaixa` `DbSet`s — consumed by Task 2 (`CaixaService`).
++
++- [ ] **Step 1: Create the `TipoMovimentoCaixa` enum**
++
++Create `Lojinha.Data/Models/TipoMovimentoCaixa.cs`:
++
++```csharp
++namespace Lojinha.Data.Models;
++
++public enum TipoMovimentoCaixa
++{
++    Sangria,
++    Suprimento
++}
++```
++
++- [ ] **Step 2: Create the `CaixaSessao` model**
++
++Create `Lojinha.Data/Models/CaixaSessao.cs`:
++
++```csharp
++namespace Lojinha.Data.Models;
++
++public class CaixaSessao
++{
++    public int Id { get; set; }
++    public DateTime DataAbertura { get; set; }
++    public decimal ValorAbertura { get; set; }
++    public required string UsuarioAbertura { get; set; }
++    public DateTime? DataFechamento { get; set; }
++    public decimal? ValorContado { get; set; }
++    public decimal? ValorEsperado { get; set; }
++    public decimal? Diferenca { get; set; }
++    public string? UsuarioFechamento { get; set; }
++
++    public ICollection<MovimentoCaixa> Movimentos { get; set; } = new List<MovimentoCaixa>();
++}
++```
++
++- [ ] **Step 3: Create the `MovimentoCaixa` model**
++
++Create `Lojinha.Data/Models/MovimentoCaixa.cs`:
++
++```csharp
++namespace Lojinha.Data.Models;
++
++public class MovimentoCaixa
++{
++    public int Id { get; set; }
++    public int CaixaSessaoId { get; set; }
++    public CaixaSessao? CaixaSessao { get; set; }
++    public TipoMovimentoCaixa Tipo { get; set; }
++    public decimal Valor { get; set; }
++    public DateTime DataHora { get; set; }
++    public required string AutorizadoPor { get; set; }
++    public string? Observacao { get; set; }
++}
++```
++
++- [ ] **Step 4: Wire the new models into `LojinhaDbContext`**
++
++In `Lojinha.Data/LojinhaDbContext.cs`, replace:
++
++```csharp
++    public DbSet<User> Users => Set<User>();
++```
++
++with:
++
++```csharp
++    public DbSet<User> Users => Set<User>();
++    public DbSet<CaixaSessao> CaixaSessoes => Set<CaixaSessao>();
++    public DbSet<MovimentoCaixa> MovimentosCaixa => Set<MovimentoCaixa>();
++```
++
++Then, inside `OnModelCreating`, replace:
++
++```csharp
++        modelBuilder.Entity<User>()
++            .HasIndex(u => u.NomeUsuario)
++            .IsUnique();
++    }
++```
++
++with:
++
++```csharp
++        modelBuilder.Entity<User>()
++            .HasIndex(u => u.NomeUsuario)
++            .IsUnique();
++
++        modelBuilder.Entity<CaixaSessao>()
++            .Property(c => c.ValorAbertura)
++            .HasPrecision(10, 2);
++
++        modelBuilder.Entity<CaixaSessao>()
++            .Property(c => c.ValorContado)
++            .HasPrecision(10, 2);
++
++        modelBuilder.Entity<CaixaSessao>()
++            .Property(c => c.ValorEsperado)
++            .HasPrecision(10, 2);
++
++        modelBuilder.Entity<CaixaSessao>()
++            .Property(c => c.Diferenca)
++            .HasPrecision(10, 2);
++
++        modelBuilder.Entity<MovimentoCaixa>()
++            .Property(m => m.Valor)
++            .HasPrecision(10, 2);
++
++        modelBuilder.Entity<MovimentoCaixa>()
++            .HasOne(m => m.CaixaSessao)
++            .WithMany(c => c.Movimentos)
++            .HasForeignKey(m => m.CaixaSessaoId)
++            .OnDelete(DeleteBehavior.Cascade);
++    }
++```
++
++- [ ] **Step 5: Generate the EF Core migration**
++
++Run: `dotnet ef migrations add AddCaixaSessao --project Lojinha.Data`
++Expected: no errors; two new files appear under `Lojinha.Data/Migrations/` (a new `..._AddCaixaSessao.cs` migration + matching `.Designer.cs`), and `Lojinha.Data/Migrations/LojinhaDbContextModelSnapshot.cs` is updated with the new tables.
++
++- [ ] **Step 6: Build**
++
++Run: `dotnet build`
++Expected: `Compilação com êxito. 0 Erro(s)`
++
++- [ ] **Step 7: Run the full test suite**
++
++Run: `dotnet test`
++Expected: PASS, 62 tests total (unchanged — this task adds no tests, just schema).
++
++- [ ] **Step 8: Commit**
++
++```bash
++git add Lojinha.Data/Models/TipoMovimentoCaixa.cs Lojinha.Data/Models/CaixaSessao.cs Lojinha.Data/Models/MovimentoCaixa.cs Lojinha.Data/LojinhaDbContext.cs Lojinha.Data/Migrations
++git commit -m "feat: add CaixaSessao/MovimentoCaixa models and migration"
++```
++
++---
++
+diff --git a/.superpowers/sdd/cc-task-1-report.md b/.superpowers/sdd/cc-task-1-report.md
+new file mode 100644
+index 0000000..ed45e5f
+--- /dev/null
++++ b/.superpowers/sdd/cc-task-1-report.md
+@@ -0,0 +1,119 @@
++# Task 1 Report: CaixaSessao/MovimentoCaixa Models and Migration
++
++## Summary
++
++Completed implementation of Task 1 of the "Controle de Caixa" feature. All requirements from the brief have been successfully implemented, tested, and committed.
++
++## What Was Implemented
++
++### 1. New Model Files Created
++
++**TipoMovimentoCaixa.cs** (`Lojinha.Data/Models/`)
++- Enum with two values: `Sangria` and `Suprimento`
++
++**CaixaSessao.cs** (`Lojinha.Data/Models/`)
++- Entity model representing a cash register session
++- Properties: `Id`, `DataAbertura`, `ValorAbertura`, `UsuarioAbertura`, `DataFechamento`, `ValorContado`, `ValorEsperado`, `Diferenca`, `UsuarioFechamento`, and navigation collection `Movimentos`
++- Uses `required` constraint on `UsuarioAbertura`
++- Defines one-to-many relationship with `MovimentoCaixa`
++
++**MovimentoCaixa.cs** (`Lojinha.Data/Models/`)
++- Entity model representing a cash register movement (deposit or withdrawal)
++- Properties: `Id`, `CaixaSessaoId`, `CaixaSessao` (navigation), `Tipo`, `Valor`, `DataHora`, `AutorizadoPor`, `Observacao`
++- Uses `required` constraint on `AutorizadoPor`
++- Foreign key relationship to `CaixaSessao`
++
++### 2. DbContext Configuration
++
++Modified `Lojinha.Data/LojinhaDbContext.cs`:
++- Added two new DbSet properties: `CaixaSessoes` and `MovimentosCaixa`
++- Configured model properties in `OnModelCreating`:
++  - Set precision `(10, 2)` for all decimal currency fields in both models
++  - Established one-to-many relationship between `CaixaSessao` and `MovimentoCaixa`
++  - Set cascade delete behavior on the foreign key relationship
++
++### 3. EF Core Migration
++
++Generated migration file:
++- Filename: `20260714173805_AddCaixaSessao.cs` (and `.Designer.cs`)
++- Successfully created using: `dotnet ef migrations add AddCaixaSessao --project Lojinha.Data`
++- Updated `LojinhaDbContextModelSnapshot.cs` automatically
++
++## Testing and Verification
++
++### Build Results
++```
++Compilação com êxito.
++    0 Aviso(s)
++    0 Erro(s)
++
++Tempo Decorrido 00:00:01.72
++```
++
++### Test Suite Results
++```
++Aprovado!  – Com falha:     0, Aprovado:    62, Ignorado:     0, Total:    62, Duração: 929 ms
++```
++
++All 62 existing tests continue to pass. No new tests were added (as this task is schema only).
++
++## Files Changed
++
++### Modified Files
++- `Lojinha.Data/LojinhaDbContext.cs` - Added DbSets and model configuration
++
++### New Files Created
++- `Lojinha.Data/Models/TipoMovimentoCaixa.cs`
++- `Lojinha.Data/Models/CaixaSessao.cs`
++- `Lojinha.Data/Models/MovimentoCaixa.cs`
++- `Lojinha.Data/Migrations/20260714173805_AddCaixaSessao.cs`
++- `Lojinha.Data/Migrations/20260714173805_AddCaixaSessao.Designer.cs`
++
++### Updated Files
++- `Lojinha.Data/Migrations/LojinhaDbContextModelSnapshot.cs` (auto-updated by EF Core)
++
++## Git Commit
++
++```
++Commit: 9e7220b
++Message: feat: add CaixaSessao/MovimentoCaixa models and migration
++
++Files changed: 7 files
++Insertions: 626 lines
++```
++
++## Self-Review Findings
++
++### Completeness
++- [x] All 8 steps from brief completed
++- [x] All three model files created with exact specifications
++- [x] DbContext wired correctly with DbSets and Fluent API configuration
++- [x] Migration generated successfully
++- [x] Build passes with 0 errors
++- [x] Full test suite passes (62/62)
++- [x] Commit created with exact message from brief
++
++### Quality Checks
++- [x] Code follows existing file structure and patterns
++- [x] File organization matches the existing codebase structure (file-per-entity pattern)
++- [x] Precision constraints consistent with existing `Product`, `Sale`, and related entities
++- [x] Foreign key configuration follows existing patterns (cascade delete)
++- [x] Nullable vs required properties match requirements
++- [x] Navigation properties correctly defined for entity relationships
++
++### Discipline
++- [x] No changes beyond the brief specification
++- [x] Commit includes only the required files
++- [x] No extra functionality, UI, or business logic added
++
++### Concerns
++None. All requirements met successfully.
++
++## Next Steps
++
++This task provides the foundation for Task 2 (CaixaService implementation), which will consume:
++- The `CaixaSessao` and `MovimentoCaixa` entities
++- The `TipoMovimentoCaixa` enum
++- The `CaixaSessoes` and `MovimentosCaixa` DbSet properties
++
++The schema is now ready for service-layer logic implementation.
+diff --git a/.superpowers/sdd/progress.md b/.superpowers/sdd/progress.md
+index 087a098..c4dc1c9 100644
+--- a/.superpowers/sdd/progress.md
++++ b/.superpowers/sdd/progress.md
+@@ -18,10 +18,13 @@ Task 2: complete (commits dbc27c6..9ae8c6b, review clean - discount-order arithm
+ Task 3: complete (commits 9ae8c6b..3db01b0, review clean - faithful mirror of LoginWindow pattern, Mode=TwoWay confirmed, Admin-role gating in AutorizacaoViewModel confirmed)
+ Task 4: complete (commits 3db01b0..059c3a9, review clean - ItemCarrinho record-to-class conversion verified, PropertyChanged subscribe/unsubscribe symmetric, authorization gate uses computed DescontoAplicado not raw entry, discount order matches SalesService, post-sale reset only on success path)
+ Task 5: complete (commits 059c3a9..8957293, review clean - all bindings verified against real SalesViewModel/ItemCarrinho/VendaHistoricoItem members, per-item discount column correctly scoped, BooleanToVisibilityConverter reused not duplicated)
+ Task 6: complete (verification only, no commit - dotnet test 62/62 pass, dotnet build 0 errors/0 warnings, fresh app launch confirmed no crash; full interactive GUI walkthrough not drivable in this headless environment - covered instead by Task 4/5's independent reviewer verification of authorization gate, discount-order math, and binding correctness; user opted to skip live manual test and proceed - not pushed yet)
+ NOTE: task-1/task-2-brief.md and report.md filenames collided with the earlier Autenticação/Usuários feature's same-numbered files and were overwritten on disk (old content still recoverable via git log on master). Tasks 3+ for this feature use dt-task-N-brief.md/dt-task-N-report.md to avoid further collisions.
+ 
+ === Feature: Tela de Caixa (branch feature-tela-caixa, plan docs/superpowers/plans/2026-07-14-tela-caixa-implementation.md) ===
+ Task 1: complete (commits c67e281..64b2286, review clean - exact byte-for-byte match to brief, MostrandoHistorico/MostrarCaixaCommand/MostrarHistoricoCommand added correctly)
+ Task 2: complete (commits 64b2286..415ab32, review clean - verbatim match to brief, all ~35 binding paths independently verified against real SalesViewModel/ItemCarrinho/VendaHistoricoItem members; 1 Minor accepted - left column has no outer scroll on very short windows, plan-mandated not implementer deviation)
+ Task 3: complete (commit 415ab32..b8854e9, review clean - single-attribute change only, x:Name/TargetPageTag/class names all confirmed untouched; interactive manual walkthrough and push deferred to controller/user)
++
++=== Feature: Controle de Caixa (branch feature-controle-caixa, plan docs/superpowers/plans/2026-07-14-controle-caixa-implementation.md) ===
++Task 1: complete (commits 106b730..9e7220b, review clean - all model properties/nullability/precision/FK match brief exactly, migration+snapshot in lockstep, Sale/SaleItem confirmed untouched)
+diff --git a/.superpowers/sdd/review-106b730..9e7220b.diff b/.superpowers/sdd/review-106b730..9e7220b.diff
+new file mode 100644
+index 0000000..0f543e0
+--- /dev/null
++++ b/.superpowers/sdd/review-106b730..9e7220b.diff
+@@ -0,0 +1,792 @@
++# Review package: 106b730..9e7220b
++
++## Commits
++9e7220b feat: add CaixaSessao/MovimentoCaixa models and migration
++
++## Files changed
++ Lojinha.Data/LojinhaDbContext.cs                   |  28 ++
++ .../20260714173805_AddCaixaSessao.Designer.cs      | 399 +++++++++++++++++++++
++ .../Migrations/20260714173805_AddCaixaSessao.cs    |  74 ++++
++ .../Migrations/LojinhaDbContextModelSnapshot.cs    |  89 +++++
++ Lojinha.Data/Models/CaixaSessao.cs                 |  16 +
++ Lojinha.Data/Models/MovimentoCaixa.cs              |  13 +
++ Lojinha.Data/Models/TipoMovimentoCaixa.cs          |   7 +
++ 7 files changed, 626 insertions(+)
++
++## Diff
++diff --git a/Lojinha.Data/LojinhaDbContext.cs b/Lojinha.Data/LojinhaDbContext.cs
++index 0b5d9f9..c88255f 100644
++--- a/Lojinha.Data/LojinhaDbContext.cs
+++++ b/Lojinha.Data/LojinhaDbContext.cs
++@@ -5,20 +5,22 @@ namespace Lojinha.Data;
++ 
++ public class LojinhaDbContext : DbContext
++ {
++     public DbSet<Category> Categories => Set<Category>();
++     public DbSet<Supplier> Suppliers => Set<Supplier>();
++     public DbSet<Product> Products => Set<Product>();
++     public DbSet<StockLot> StockLots => Set<StockLot>();
++     public DbSet<Sale> Sales => Set<Sale>();
++     public DbSet<SaleItem> SaleItems => Set<SaleItem>();
++     public DbSet<User> Users => Set<User>();
+++    public DbSet<CaixaSessao> CaixaSessoes => Set<CaixaSessao>();
+++    public DbSet<MovimentoCaixa> MovimentosCaixa => Set<MovimentoCaixa>();
++ 
++     public LojinhaDbContext(DbContextOptions<LojinhaDbContext> options) : base(options)
++     {
++     }
++ 
++     protected override void OnModelCreating(ModelBuilder modelBuilder)
++     {
++         modelBuilder.Entity<Product>()
++             .HasIndex(p => p.CodigoBarras)
++             .IsUnique();
++@@ -97,12 +99,38 @@ public class LojinhaDbContext : DbContext
++ 
++         modelBuilder.Entity<SaleItem>()
++             .HasOne(i => i.Product)
++             .WithMany()
++             .HasForeignKey(i => i.ProductId)
++             .OnDelete(DeleteBehavior.Restrict);
++ 
++         modelBuilder.Entity<User>()
++             .HasIndex(u => u.NomeUsuario)
++             .IsUnique();
+++
+++        modelBuilder.Entity<CaixaSessao>()
+++            .Property(c => c.ValorAbertura)
+++            .HasPrecision(10, 2);
+++
+++        modelBuilder.Entity<CaixaSessao>()
+++            .Property(c => c.ValorContado)
+++            .HasPrecision(10, 2);
+++
+++        modelBuilder.Entity<CaixaSessao>()
+++            .Property(c => c.ValorEsperado)
+++            .HasPrecision(10, 2);
+++
+++        modelBuilder.Entity<CaixaSessao>()
+++            .Property(c => c.Diferenca)
+++            .HasPrecision(10, 2);
+++
+++        modelBuilder.Entity<MovimentoCaixa>()
+++            .Property(m => m.Valor)
+++            .HasPrecision(10, 2);
+++
+++        modelBuilder.Entity<MovimentoCaixa>()
+++            .HasOne(m => m.CaixaSessao)
+++            .WithMany(c => c.Movimentos)
+++            .HasForeignKey(m => m.CaixaSessaoId)
+++            .OnDelete(DeleteBehavior.Cascade);
++     }
++ }
++diff --git a/Lojinha.Data/Migrations/20260714173805_AddCaixaSessao.Designer.cs b/Lojinha.Data/Migrations/20260714173805_AddCaixaSessao.Designer.cs
++new file mode 100644
++index 0000000..b66e391
++--- /dev/null
+++++ b/Lojinha.Data/Migrations/20260714173805_AddCaixaSessao.Designer.cs
++@@ -0,0 +1,399 @@
+++﻿// <auto-generated />
+++using System;
+++using Lojinha.Data;
+++using Microsoft.EntityFrameworkCore;
+++using Microsoft.EntityFrameworkCore.Infrastructure;
+++using Microsoft.EntityFrameworkCore.Migrations;
+++using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+++
+++#nullable disable
+++
+++namespace Lojinha.Data.Migrations
+++{
+++    [DbContext(typeof(LojinhaDbContext))]
+++    [Migration("20260714173805_AddCaixaSessao")]
+++    partial class AddCaixaSessao
+++    {
+++        /// <inheritdoc />
+++        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+++        {
+++#pragma warning disable 612, 618
+++            modelBuilder.HasAnnotation("ProductVersion", "8.0.11");
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.CaixaSessao", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<DateTime>("DataAbertura")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<DateTime?>("DataFechamento")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal?>("Diferenca")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<string>("UsuarioAbertura")
+++                        .IsRequired()
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<string>("UsuarioFechamento")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal>("ValorAbertura")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal?>("ValorContado")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal?>("ValorEsperado")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.HasKey("Id");
+++
+++                    b.ToTable("CaixaSessoes");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.Category", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<string>("Nome")
+++                        .IsRequired()
+++                        .HasColumnType("TEXT");
+++
+++                    b.HasKey("Id");
+++
+++                    b.ToTable("Categories");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.MovimentoCaixa", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<string>("AutorizadoPor")
+++                        .IsRequired()
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int>("CaixaSessaoId")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<DateTime>("DataHora")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<string>("Observacao")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int>("Tipo")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<decimal>("Valor")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.HasKey("Id");
+++
+++                    b.HasIndex("CaixaSessaoId");
+++
+++                    b.ToTable("MovimentosCaixa");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.Product", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<int>("CategoryId")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<string>("CodigoBarras")
+++                        .IsRequired()
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal>("EstoqueMinimo")
+++                        .HasPrecision(10, 3)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<string>("Nome")
+++                        .IsRequired()
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal>("PrecoCusto")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal>("PrecoVenda")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int>("TipoVenda")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.HasKey("Id");
+++
+++                    b.HasIndex("CategoryId");
+++
+++                    b.HasIndex("CodigoBarras")
+++                        .IsUnique();
+++
+++                    b.ToTable("Products");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.Sale", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<string>("AutorizadoPor")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<bool>("Cancelada")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<DateTime?>("DataCancelamento")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<DateTime>("DataHora")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal>("DescontoValor")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int>("FormaPagamento")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<decimal>("Total")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal?>("Troco")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<string>("UsuarioNome")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal?>("ValorRecebido")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.HasKey("Id");
+++
+++                    b.ToTable("Sales");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.SaleItem", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<decimal>("DescontoValor")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal>("PrecoUnitario")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int>("ProductId")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<decimal>("Quantidade")
+++                        .HasPrecision(10, 3)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int>("SaleId")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.HasKey("Id");
+++
+++                    b.HasIndex("ProductId");
+++
+++                    b.HasIndex("SaleId");
+++
+++                    b.ToTable("SaleItems");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.StockLot", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<DateTime>("DataEntrada")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<DateTime?>("DataValidade")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int>("ProductId")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<decimal>("Quantidade")
+++                        .HasPrecision(10, 3)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal>("QuantidadeRestante")
+++                        .HasPrecision(10, 3)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int?>("SupplierId")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.HasKey("Id");
+++
+++                    b.HasIndex("ProductId");
+++
+++                    b.HasIndex("SupplierId");
+++
+++                    b.ToTable("StockLots");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.Supplier", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<string>("Contato")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<string>("Nome")
+++                        .IsRequired()
+++                        .HasColumnType("TEXT");
+++
+++                    b.HasKey("Id");
+++
+++                    b.ToTable("Suppliers");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.User", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<string>("NomeUsuario")
+++                        .IsRequired()
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int>("Papel")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<byte[]>("SenhaHash")
+++                        .IsRequired()
+++                        .HasColumnType("BLOB");
+++
+++                    b.Property<byte[]>("SenhaSalt")
+++                        .IsRequired()
+++                        .HasColumnType("BLOB");
+++
+++                    b.HasKey("Id");
+++
+++                    b.HasIndex("NomeUsuario")
+++                        .IsUnique();
+++
+++                    b.ToTable("Users");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.MovimentoCaixa", b =>
+++                {
+++                    b.HasOne("Lojinha.Data.Models.CaixaSessao", "CaixaSessao")
+++                        .WithMany("Movimentos")
+++                        .HasForeignKey("CaixaSessaoId")
+++                        .OnDelete(DeleteBehavior.Cascade)
+++                        .IsRequired();
+++
+++                    b.Navigation("CaixaSessao");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.Product", b =>
+++                {
+++                    b.HasOne("Lojinha.Data.Models.Category", "Category")
+++                        .WithMany("Products")
+++                        .HasForeignKey("CategoryId")
+++                        .OnDelete(DeleteBehavior.Restrict)
+++                        .IsRequired();
+++
+++                    b.Navigation("Category");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.SaleItem", b =>
+++                {
+++                    b.HasOne("Lojinha.Data.Models.Product", "Product")
+++                        .WithMany()
+++                        .HasForeignKey("ProductId")
+++                        .OnDelete(DeleteBehavior.Restrict)
+++                        .IsRequired();
+++
+++                    b.HasOne("Lojinha.Data.Models.Sale", "Sale")
+++                        .WithMany("Items")
+++                        .HasForeignKey("SaleId")
+++                        .OnDelete(DeleteBehavior.Cascade)
+++                        .IsRequired();
+++
+++                    b.Navigation("Product");
+++
+++                    b.Navigation("Sale");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.StockLot", b =>
+++                {
+++                    b.HasOne("Lojinha.Data.Models.Product", "Product")
+++                        .WithMany("StockLots")
+++                        .HasForeignKey("ProductId")
+++                        .OnDelete(DeleteBehavior.Cascade)
+++                        .IsRequired();
+++
+++                    b.HasOne("Lojinha.Data.Models.Supplier", "Supplier")
+++                        .WithMany("StockLots")
+++                        .HasForeignKey("SupplierId")
+++                        .OnDelete(DeleteBehavior.SetNull);
+++
+++                    b.Navigation("Product");
+++
+++                    b.Navigation("Supplier");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.CaixaSessao", b =>
+++                {
+++                    b.Navigation("Movimentos");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.Category", b =>
+++                {
+++                    b.Navigation("Products");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.Product", b =>
+++                {
+++                    b.Navigation("StockLots");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.Sale", b =>
+++                {
+++                    b.Navigation("Items");
+++                });
+++
+++            modelBuilder.Entity("Lojinha.Data.Models.Supplier", b =>
+++                {
+++                    b.Navigation("StockLots");
+++                });
+++#pragma warning restore 612, 618
+++        }
+++    }
+++}
++diff --git a/Lojinha.Data/Migrations/20260714173805_AddCaixaSessao.cs b/Lojinha.Data/Migrations/20260714173805_AddCaixaSessao.cs
++new file mode 100644
++index 0000000..d5744fd
++--- /dev/null
+++++ b/Lojinha.Data/Migrations/20260714173805_AddCaixaSessao.cs
++@@ -0,0 +1,74 @@
+++﻿using System;
+++using Microsoft.EntityFrameworkCore.Migrations;
+++
+++#nullable disable
+++
+++namespace Lojinha.Data.Migrations
+++{
+++    /// <inheritdoc />
+++    public partial class AddCaixaSessao : Migration
+++    {
+++        /// <inheritdoc />
+++        protected override void Up(MigrationBuilder migrationBuilder)
+++        {
+++            migrationBuilder.CreateTable(
+++                name: "CaixaSessoes",
+++                columns: table => new
+++                {
+++                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+++                        .Annotation("Sqlite:Autoincrement", true),
+++                    DataAbertura = table.Column<DateTime>(type: "TEXT", nullable: false),
+++                    ValorAbertura = table.Column<decimal>(type: "TEXT", precision: 10, scale: 2, nullable: false),
+++                    UsuarioAbertura = table.Column<string>(type: "TEXT", nullable: false),
+++                    DataFechamento = table.Column<DateTime>(type: "TEXT", nullable: true),
+++                    ValorContado = table.Column<decimal>(type: "TEXT", precision: 10, scale: 2, nullable: true),
+++                    ValorEsperado = table.Column<decimal>(type: "TEXT", precision: 10, scale: 2, nullable: true),
+++                    Diferenca = table.Column<decimal>(type: "TEXT", precision: 10, scale: 2, nullable: true),
+++                    UsuarioFechamento = table.Column<string>(type: "TEXT", nullable: true)
+++                },
+++                constraints: table =>
+++                {
+++                    table.PrimaryKey("PK_CaixaSessoes", x => x.Id);
+++                });
+++
+++            migrationBuilder.CreateTable(
+++                name: "MovimentosCaixa",
+++                columns: table => new
+++                {
+++                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+++                        .Annotation("Sqlite:Autoincrement", true),
+++                    CaixaSessaoId = table.Column<int>(type: "INTEGER", nullable: false),
+++                    Tipo = table.Column<int>(type: "INTEGER", nullable: false),
+++                    Valor = table.Column<decimal>(type: "TEXT", precision: 10, scale: 2, nullable: false),
+++                    DataHora = table.Column<DateTime>(type: "TEXT", nullable: false),
+++                    AutorizadoPor = table.Column<string>(type: "TEXT", nullable: false),
+++                    Observacao = table.Column<string>(type: "TEXT", nullable: true)
+++                },
+++                constraints: table =>
+++                {
+++                    table.PrimaryKey("PK_MovimentosCaixa", x => x.Id);
+++                    table.ForeignKey(
+++                        name: "FK_MovimentosCaixa_CaixaSessoes_CaixaSessaoId",
+++                        column: x => x.CaixaSessaoId,
+++                        principalTable: "CaixaSessoes",
+++                        principalColumn: "Id",
+++                        onDelete: ReferentialAction.Cascade);
+++                });
+++
+++            migrationBuilder.CreateIndex(
+++                name: "IX_MovimentosCaixa_CaixaSessaoId",
+++                table: "MovimentosCaixa",
+++                column: "CaixaSessaoId");
+++        }
+++
+++        /// <inheritdoc />
+++        protected override void Down(MigrationBuilder migrationBuilder)
+++        {
+++            migrationBuilder.DropTable(
+++                name: "MovimentosCaixa");
+++
+++            migrationBuilder.DropTable(
+++                name: "CaixaSessoes");
+++        }
+++    }
+++}
++diff --git a/Lojinha.Data/Migrations/LojinhaDbContextModelSnapshot.cs b/Lojinha.Data/Migrations/LojinhaDbContextModelSnapshot.cs
++index 1e1b7c3..4c3fa66 100644
++--- a/Lojinha.Data/Migrations/LojinhaDbContextModelSnapshot.cs
+++++ b/Lojinha.Data/Migrations/LojinhaDbContextModelSnapshot.cs
++@@ -10,35 +10,108 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
++ namespace Lojinha.Data.Migrations
++ {
++     [DbContext(typeof(LojinhaDbContext))]
++     partial class LojinhaDbContextModelSnapshot : ModelSnapshot
++     {
++         protected override void BuildModel(ModelBuilder modelBuilder)
++         {
++ #pragma warning disable 612, 618
++             modelBuilder.HasAnnotation("ProductVersion", "8.0.11");
++ 
+++            modelBuilder.Entity("Lojinha.Data.Models.CaixaSessao", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<DateTime>("DataAbertura")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<DateTime?>("DataFechamento")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal?>("Diferenca")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<string>("UsuarioAbertura")
+++                        .IsRequired()
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<string>("UsuarioFechamento")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal>("ValorAbertura")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal?>("ValorContado")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<decimal?>("ValorEsperado")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.HasKey("Id");
+++
+++                    b.ToTable("CaixaSessoes");
+++                });
+++
++             modelBuilder.Entity("Lojinha.Data.Models.Category", b =>
++                 {
++                     b.Property<int>("Id")
++                         .ValueGeneratedOnAdd()
++                         .HasColumnType("INTEGER");
++ 
++                     b.Property<string>("Nome")
++                         .IsRequired()
++                         .HasColumnType("TEXT");
++ 
++                     b.HasKey("Id");
++ 
++                     b.ToTable("Categories");
++                 });
++ 
+++            modelBuilder.Entity("Lojinha.Data.Models.MovimentoCaixa", b =>
+++                {
+++                    b.Property<int>("Id")
+++                        .ValueGeneratedOnAdd()
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<string>("AutorizadoPor")
+++                        .IsRequired()
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int>("CaixaSessaoId")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<DateTime>("DataHora")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<string>("Observacao")
+++                        .HasColumnType("TEXT");
+++
+++                    b.Property<int>("Tipo")
+++                        .HasColumnType("INTEGER");
+++
+++                    b.Property<decimal>("Valor")
+++                        .HasPrecision(10, 2)
+++                        .HasColumnType("TEXT");
+++
+++                    b.HasKey("Id");
+++
+++                    b.HasIndex("CaixaSessaoId");
+++
+++                    b.ToTable("MovimentosCaixa");
+++                });
+++
++             modelBuilder.Entity("Lojinha.Data.Models.Product", b =>
++                 {
++                     b.Property<int>("Id")
++                         .ValueGeneratedOnAdd()
++                         .HasColumnType("INTEGER");
++ 
++                     b.Property<int>("CategoryId")
++                         .HasColumnType("INTEGER");
++ 
++                     b.Property<string>("CodigoBarras")
++@@ -227,20 +300,31 @@ namespace Lojinha.Data.Migrations
++                         .HasColumnType("BLOB");
++ 
++                     b.HasKey("Id");
++ 
++                     b.HasIndex("NomeUsuario")
++                         .IsUnique();
++ 
++                     b.ToTable("Users");
++                 });
++ 
+++            modelBuilder.Entity("Lojinha.Data.Models.MovimentoCaixa", b =>
+++                {
+++                    b.HasOne("Lojinha.Data.Models.CaixaSessao", "CaixaSessao")
+++                        .WithMany("Movimentos")
+++                        .HasForeignKey("CaixaSessaoId")
+++                        .OnDelete(DeleteBehavior.Cascade)
+++                        .IsRequired();
+++
+++                    b.Navigation("CaixaSessao");
+++                });
+++
++             modelBuilder.Entity("Lojinha.Data.Models.Product", b =>
++                 {
++                     b.HasOne("Lojinha.Data.Models.Category", "Category")
++                         .WithMany("Products")
++                         .HasForeignKey("CategoryId")
++                         .OnDelete(DeleteBehavior.Restrict)
++                         .IsRequired();
++ 
++                     b.Navigation("Category");
++                 });
++@@ -275,20 +359,25 @@ namespace Lojinha.Data.Migrations
++                     b.HasOne("Lojinha.Data.Models.Supplier", "Supplier")
++                         .WithMany("StockLots")
++                         .HasForeignKey("SupplierId")
++                         .OnDelete(DeleteBehavior.SetNull);
++ 
++                     b.Navigation("Product");
++ 
++                     b.Navigation("Supplier");
++                 });
++ 
+++            modelBuilder.Entity("Lojinha.Data.Models.CaixaSessao", b =>
+++                {
+++                    b.Navigation("Movimentos");
+++                });
+++
++             modelBuilder.Entity("Lojinha.Data.Models.Category", b =>
++                 {
++                     b.Navigation("Products");
++                 });
++ 
++             modelBuilder.Entity("Lojinha.Data.Models.Product", b =>
++                 {
++                     b.Navigation("StockLots");
++                 });
++ 
++diff --git a/Lojinha.Data/Models/CaixaSessao.cs b/Lojinha.Data/Models/CaixaSessao.cs
++new file mode 100644
++index 0000000..015a20c
++--- /dev/null
+++++ b/Lojinha.Data/Models/CaixaSessao.cs
++@@ -0,0 +1,16 @@
+++namespace Lojinha.Data.Models;
+++
+++public class CaixaSessao
+++{
+++    public int Id { get; set; }
+++    public DateTime DataAbertura { get; set; }
+++    public decimal ValorAbertura { get; set; }
+++    public required string UsuarioAbertura { get; set; }
+++    public DateTime? DataFechamento { get; set; }
+++    public decimal? ValorContado { get; set; }
+++    public decimal? ValorEsperado { get; set; }
+++    public decimal? Diferenca { get; set; }
+++    public string? UsuarioFechamento { get; set; }
+++
+++    public ICollection<MovimentoCaixa> Movimentos { get; set; } = new List<MovimentoCaixa>();
+++}
++diff --git a/Lojinha.Data/Models/MovimentoCaixa.cs b/Lojinha.Data/Models/MovimentoCaixa.cs
++new file mode 100644
++index 0000000..1b7aef4
++--- /dev/null
+++++ b/Lojinha.Data/Models/MovimentoCaixa.cs
++@@ -0,0 +1,13 @@
+++namespace Lojinha.Data.Models;
+++
+++public class MovimentoCaixa
+++{
+++    public int Id { get; set; }
+++    public int CaixaSessaoId { get; set; }
+++    public CaixaSessao? CaixaSessao { get; set; }
+++    public TipoMovimentoCaixa Tipo { get; set; }
+++    public decimal Valor { get; set; }
+++    public DateTime DataHora { get; set; }
+++    public required string AutorizadoPor { get; set; }
+++    public string? Observacao { get; set; }
+++}
++diff --git a/Lojinha.Data/Models/TipoMovimentoCaixa.cs b/Lojinha.Data/Models/TipoMovimentoCaixa.cs
++new file mode 100644
++index 0000000..84597b1
++--- /dev/null
+++++ b/Lojinha.Data/Models/TipoMovimentoCaixa.cs
++@@ -0,0 +1,7 @@
+++namespace Lojinha.Data.Models;
+++
+++public enum TipoMovimentoCaixa
+++{
+++    Sangria,
+++    Suprimento
+++}
+diff --git a/Lojinha.Services.Tests/CaixaServiceTests.cs b/Lojinha.Services.Tests/CaixaServiceTests.cs
+new file mode 100644
+index 0000000..f64ed55
+--- /dev/null
++++ b/Lojinha.Services.Tests/CaixaServiceTests.cs
+@@ -0,0 +1,248 @@
++using Lojinha.Data;
++using Lojinha.Data.Models;
++using Microsoft.Data.Sqlite;
++using Microsoft.EntityFrameworkCore;
++using Xunit;
++
++namespace Lojinha.Services.Tests;
++
++public class CaixaServiceTests : IDisposable
++{
++    private readonly SqliteConnection _connection;
++    private readonly LojinhaDbContext _context;
++    private readonly CaixaService _service;
++    private readonly StockService _stockService;
++    private readonly SalesService _salesService;
++    private readonly Category _category;
++    private readonly Product _product;
++
++    public CaixaServiceTests()
++    {
++        _connection = new SqliteConnection("DataSource=:memory:");
++        _connection.Open();
++
++        var options = new DbContextOptionsBuilder<LojinhaDbContext>()
++            .UseSqlite(_connection)
++            .Options;
++
++        _context = new LojinhaDbContext(options);
++        _context.Database.EnsureCreated();
++
++        _service = new CaixaService(_context);
++        _stockService = new StockService(_context);
++        _salesService = new SalesService(_context, _stockService);
++
++        _category = new Category { Nome = "Bebidas" };
++        _context.Categories.Add(_category);
++        _context.SaveChanges();
++
++        _product = new Product
++        {
++            Nome = "Coca-Cola 2L",
++            CodigoBarras = "789000000001",
++            CategoryId = _category.Id,
++            TipoVenda = TipoVenda.Unidade,
++            PrecoCusto = 5m,
++            PrecoVenda = 10m,
++            EstoqueMinimo = 0
++        };
++        _context.Products.Add(_product);
++        _context.SaveChanges();
++        _stockService.AddLot(_product.Id, quantidade: 100, dataValidade: null, supplierId: null);
++    }
++
++    public void Dispose()
++    {
++        _context.Dispose();
++        _connection.Dispose();
++    }
++
++    [Fact]
++    public void AbrirCaixa_Succeeds_WhenNoneOpen()
++    {
++        var sessao = _service.AbrirCaixa(100m, "admin1");
++
++        Assert.Equal(100m, sessao.ValorAbertura);
++        Assert.Equal("admin1", sessao.UsuarioAbertura);
++        Assert.Null(sessao.DataFechamento);
++    }
++
++    [Fact]
++    public void AbrirCaixa_ThrowsWhenAlreadyOpen()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++
++        Assert.Throws<InvalidOperationException>(() => _service.AbrirCaixa(50m, "admin1"));
++    }
++
++    [Fact]
++    public void AbrirCaixa_ThrowsWhenValorNegativo()
++    {
++        Assert.Throws<ArgumentException>(() => _service.AbrirCaixa(-10m, "admin1"));
++    }
++
++    [Fact]
++    public void GetSessaoAberta_ReturnsNullWhenNoneOpen()
++    {
++        Assert.Null(_service.GetSessaoAberta());
++    }
++
++    [Fact]
++    public void RegistrarMovimento_ThrowsWhenNoneOpen()
++    {
++        Assert.Throws<InvalidOperationException>(() =>
++            _service.RegistrarMovimento(TipoMovimentoCaixa.Sangria, 20m, "admin1", null));
++    }
++
++    [Fact]
++    public void RegistrarMovimento_ThrowsWhenValorNaoPositivo()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++
++        Assert.Throws<ArgumentException>(() =>
++            _service.RegistrarMovimento(TipoMovimentoCaixa.Sangria, 0m, "admin1", null));
++    }
++
++    [Fact]
++    public void RegistrarMovimento_Sangria_Succeeds()
++    {
++        var sessao = _service.AbrirCaixa(100m, "admin1");
++
++        var movimento = _service.RegistrarMovimento(TipoMovimentoCaixa.Sangria, 30m, "admin1", "Depósito banco");
++
++        Assert.Equal(sessao.Id, movimento.CaixaSessaoId);
++        Assert.Equal(TipoMovimentoCaixa.Sangria, movimento.Tipo);
++        Assert.Equal(30m, movimento.Valor);
++        Assert.Equal("admin1", movimento.AutorizadoPor);
++        Assert.Equal("Depósito banco", movimento.Observacao);
++    }
++
++    [Fact]
++    public void RegistrarMovimento_Suprimento_Succeeds()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++
++        var movimento = _service.RegistrarMovimento(TipoMovimentoCaixa.Suprimento, 50m, "admin1", null);
++
++        Assert.Equal(TipoMovimentoCaixa.Suprimento, movimento.Tipo);
++        Assert.Equal(50m, movimento.Valor);
++    }
++
++    [Fact]
++    public void RegistrarMovimento_DoesNotRevalidateAutorizadoPorRole()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++
++        var movimento = _service.RegistrarMovimento(TipoMovimentoCaixa.Sangria, 10m, "qualquer-nome", null);
++
++        Assert.Equal("qualquer-nome", movimento.AutorizadoPor);
++    }
++
++    [Fact]
++    public void FecharCaixa_ThrowsWhenNoneOpen()
++    {
++        Assert.Throws<InvalidOperationException>(() => _service.FecharCaixa(100m, "admin1"));
++    }
++
++    [Fact]
++    public void FecharCaixa_ThrowsWhenValorContadoNegativo()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++
++        Assert.Throws<ArgumentException>(() => _service.FecharCaixa(-1m, "admin1"));
++    }
++
++    [Fact]
++    public void FecharCaixa_ComputesValorEsperadoAndDiferenca_NoMovimentosOrVendas()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++
++        var sessao = _service.FecharCaixa(100m, "admin1");
++
++        Assert.Equal(100m, sessao.ValorEsperado);
++        Assert.Equal(0m, sessao.Diferenca);
++        Assert.NotNull(sessao.DataFechamento);
++        Assert.Equal("admin1", sessao.UsuarioFechamento);
++    }
++
++    [Fact]
++    public void FecharCaixa_IncludesDinheiroSalesAndExcludesOtherPayments()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++        _salesService.RegisterSale(new[] { (_product.Id, 2m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 20m);
++        _salesService.RegisterSale(new[] { (_product.Id, 1m, 0m) }, FormaPagamento.Cartao);
++
++        var sessao = _service.FecharCaixa(120m, "admin1");
++
++        Assert.Equal(120m, sessao.ValorEsperado);
++        Assert.Equal(0m, sessao.Diferenca);
++    }
++
++    [Fact]
++    public void FecharCaixa_ExcludesCancelledSales()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++        var venda = _salesService.RegisterSale(new[] { (_product.Id, 2m, 0m) }, FormaPagamento.Dinheiro, valorRecebido: 20m);
++        _salesService.CancelSale(venda.Id);
++
++        var sessao = _service.FecharCaixa(100m, "admin1");
++
++        Assert.Equal(100m, sessao.ValorEsperado);
++    }
++
++    [Fact]
++    public void FecharCaixa_AppliesSuprimentoAndSangria()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++        _service.RegistrarMovimento(TipoMovimentoCaixa.Suprimento, 50m, "admin1", null);
++        _service.RegistrarMovimento(TipoMovimentoCaixa.Sangria, 30m, "admin1", null);
++
++        var sessao = _service.FecharCaixa(120m, "admin1");
++
++        Assert.Equal(120m, sessao.ValorEsperado);
++        Assert.Equal(0m, sessao.Diferenca);
++    }
++
++    [Fact]
++    public void FecharCaixa_RecordsPositiveDiferenca_WhenContadoExceedsEsperado()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++
++        var sessao = _service.FecharCaixa(110m, "admin1");
++
++        Assert.Equal(10m, sessao.Diferenca);
++    }
++
++    [Fact]
++    public void GetSessaoAberta_ReturnsNullAfterClosing()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++        _service.FecharCaixa(100m, "admin1");
++
++        Assert.Null(_service.GetSessaoAberta());
++    }
++
++    [Fact]
++    public void AbrirCaixa_SucceedsAgainAfterPreviousClosed()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++        _service.FecharCaixa(100m, "admin1");
++
++        var novaSessao = _service.AbrirCaixa(50m, "admin2");
++
++        Assert.Equal(50m, novaSessao.ValorAbertura);
++    }
++
++    [Fact]
++    public void GetMovimentos_OrdersByDataHoraDescending()
++    {
++        _service.AbrirCaixa(100m, "admin1");
++        _service.RegistrarMovimento(TipoMovimentoCaixa.Suprimento, 10m, "admin1", null);
++        _service.RegistrarMovimento(TipoMovimentoCaixa.Sangria, 5m, "admin1", null);
++
++        var movimentos = _service.GetMovimentos(_service.GetSessaoAberta()!.Id).ToList();
++
++        Assert.Equal(2, movimentos.Count);
++        Assert.Equal(TipoMovimentoCaixa.Sangria, movimentos.First().Tipo);
++    }
++}
+diff --git a/Lojinha.Services/CaixaService.cs b/Lojinha.Services/CaixaService.cs
+new file mode 100644
+index 0000000..35ddd11
+--- /dev/null
++++ b/Lojinha.Services/CaixaService.cs
+@@ -0,0 +1,118 @@
++using Lojinha.Data;
++using Lojinha.Data.Models;
++
++namespace Lojinha.Services;
++
++public class CaixaService
++{
++    private readonly LojinhaDbContext _context;
++
++    public CaixaService(LojinhaDbContext context)
++    {
++        _context = context;
++    }
++
++    public CaixaSessao? GetSessaoAberta()
++    {
++        return _context.CaixaSessoes.FirstOrDefault(c => c.DataFechamento == null);
++    }
++
++    public CaixaSessao AbrirCaixa(decimal valorAbertura, string usuarioNome)
++    {
++        if (GetSessaoAberta() is not null)
++        {
++            throw new InvalidOperationException("Já existe um caixa aberto.");
++        }
++
++        if (valorAbertura < 0)
++        {
++            throw new ArgumentException("Valor de abertura não pode ser negativo.", nameof(valorAbertura));
++        }
++
++        var sessao = new CaixaSessao
++        {
++            DataAbertura = DateTime.Now,
++            ValorAbertura = valorAbertura,
++            UsuarioAbertura = usuarioNome
++        };
++
++        _context.CaixaSessoes.Add(sessao);
++        _context.SaveChanges();
++
++        return sessao;
++    }
++
++    public MovimentoCaixa RegistrarMovimento(TipoMovimentoCaixa tipo, decimal valor, string autorizadoPor, string? observacao)
++    {
++        var sessao = GetSessaoAberta()
++            ?? throw new InvalidOperationException("Nenhum caixa aberto.");
++
++        if (valor <= 0)
++        {
++            throw new ArgumentException("Valor do movimento deve ser maior que zero.", nameof(valor));
++        }
++
++        var movimento = new MovimentoCaixa
++        {
++            CaixaSessaoId = sessao.Id,
++            Tipo = tipo,
++            Valor = valor,
++            DataHora = DateTime.Now,
++            AutorizadoPor = autorizadoPor,
++            Observacao = observacao
++        };
++
++        _context.MovimentosCaixa.Add(movimento);
++        _context.SaveChanges();
++
++        return movimento;
++    }
++
++    public CaixaSessao FecharCaixa(decimal valorContado, string usuarioNome)
++    {
++        var sessao = GetSessaoAberta()
++            ?? throw new InvalidOperationException("Nenhum caixa aberto para fechar.");
++
++        if (valorContado < 0)
++        {
++            throw new ArgumentException("Valor contado não pode ser negativo.", nameof(valorContado));
++        }
++
++        var dataFechamento = DateTime.Now;
++
++        var vendasDinheiro = _context.Sales
++            .Where(s => s.FormaPagamento == FormaPagamento.Dinheiro
++                && !s.Cancelada
++                && s.DataHora >= sessao.DataAbertura
++                && s.DataHora <= dataFechamento)
++            .Select(s => s.Total)
++            .AsEnumerable()
++            .Sum();
++
++        var movimentos = _context.MovimentosCaixa
++            .Where(m => m.CaixaSessaoId == sessao.Id)
++            .ToList();
++        var suprimentos = movimentos.Where(m => m.Tipo == TipoMovimentoCaixa.Suprimento).Sum(m => m.Valor);
++        var sangrias = movimentos.Where(m => m.Tipo == TipoMovimentoCaixa.Sangria).Sum(m => m.Valor);
++
++        var valorEsperado = sessao.ValorAbertura + vendasDinheiro + suprimentos - sangrias;
++
++        sessao.DataFechamento = dataFechamento;
++        sessao.ValorContado = valorContado;
++        sessao.ValorEsperado = valorEsperado;
++        sessao.Diferenca = valorContado - valorEsperado;
++        sessao.UsuarioFechamento = usuarioNome;
++
++        _context.SaveChanges();
++
++        return sessao;
++    }
++
++    public IEnumerable<MovimentoCaixa> GetMovimentos(int sessaoId)
++    {
++        return _context.MovimentosCaixa
++            .Where(m => m.CaixaSessaoId == sessaoId)
++            .OrderByDescending(m => m.DataHora)
++            .ToList();
++    }
++}
