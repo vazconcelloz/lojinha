@@ -25,3 +25,6 @@ NOTE: task-1/task-2-brief.md and report.md filenames collided with the earlier A
 Task 1: complete (commits c67e281..64b2286, review clean - exact byte-for-byte match to brief, MostrandoHistorico/MostrarCaixaCommand/MostrarHistoricoCommand added correctly)
 Task 2: complete (commits 64b2286..415ab32, review clean - verbatim match to brief, all ~35 binding paths independently verified against real SalesViewModel/ItemCarrinho/VendaHistoricoItem members; 1 Minor accepted - left column has no outer scroll on very short windows, plan-mandated not implementer deviation)
 Task 3: complete (commit 415ab32..b8854e9, review clean - single-attribute change only, x:Name/TargetPageTag/class names all confirmed untouched; interactive manual walkthrough and push deferred to controller/user)
+
+=== Feature: Controle de Caixa (branch feature-controle-caixa, plan docs/superpowers/plans/2026-07-14-controle-caixa-implementation.md) ===
+Task 1: complete (commits 106b730..9e7220b, review clean - all model properties/nullability/precision/FK match brief exactly, migration+snapshot in lockstep, Sale/SaleItem confirmed untouched)
