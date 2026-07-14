@@ -1,0 +1,152 @@
+# Review package: cbeb815..3e5e84f
+
+## Commits
+3e5e84f feat: add role-based sidebar gating and Sair (logout without restart)
+
+## Files changed
+ Lojinha.App/App.xaml.cs        |  6 ++++++
+ Lojinha.App/MainWindow.xaml    |  8 ++++++--
+ Lojinha.App/MainWindow.xaml.cs | 26 +++++++++++++++++++++++---
+ 3 files changed, 35 insertions(+), 5 deletions(-)
+
+## Diff
+diff --git a/Lojinha.App/App.xaml.cs b/Lojinha.App/App.xaml.cs
+index f42fe20..4430df0 100644
+--- a/Lojinha.App/App.xaml.cs
++++ b/Lojinha.App/App.xaml.cs
+@@ -35,20 +35,26 @@ public partial class App : Application
+         var loginWindow = _scope!.ServiceProvider.GetRequiredService<LoginWindow>();
+         var loginOk = loginWindow.ShowDialog();
+ 
+         if (loginOk != true)
+         {
+             Shutdown();
+             return;
+         }
+ 
+         var mainWindow = _scope.ServiceProvider.GetRequiredService<MainWindow>();
++        mainWindow.Sair += (_, _) =>
++        {
++            mainWindow.Close();
++            _scope.ServiceProvider.GetRequiredService<SessionService>().CurrentUser = null;
++            MostrarLoginEEntrar();
++        };
+         Current.MainWindow = mainWindow;
+         mainWindow.Show();
+     }
+ 
+     protected override void OnExit(ExitEventArgs e)
+     {
+         _scope?.Dispose();
+         _serviceProvider?.Dispose();
+         base.OnExit(e);
+     }
+diff --git a/Lojinha.App/MainWindow.xaml b/Lojinha.App/MainWindow.xaml
+index ffb990c..286d240 100644
+--- a/Lojinha.App/MainWindow.xaml
++++ b/Lojinha.App/MainWindow.xaml
+@@ -51,19 +51,23 @@
+                     </ui:NavigationViewItem.Icon>
+                 </ui:NavigationViewItem>
+                 <ui:NavigationViewItem x:Name="UsuariosItem" Content="Usuários" TargetPageTag="usuarios"
+                                         Click="NavigationViewItem_OnClick">
+                     <ui:NavigationViewItem.Icon>
+                         <ui:SymbolIcon Symbol="Person24" />
+                     </ui:NavigationViewItem.Icon>
+                 </ui:NavigationViewItem>
+             </ui:NavigationView.MenuItems>
+             <ui:NavigationView.PaneFooter>
+-                <ui:ToggleSwitch x:Name="ThemeToggle" OnContent="Escuro" OffContent="Claro" Margin="12"
+-                                  Checked="ThemeToggle_OnToggle" Unchecked="ThemeToggle_OnToggle" />
++                <StackPanel>
++                    <ui:ToggleSwitch x:Name="ThemeToggle" OnContent="Escuro" OffContent="Claro" Margin="12,12,12,4"
++                                      Checked="ThemeToggle_OnToggle" Unchecked="ThemeToggle_OnToggle" />
++                    <ui:Button Content="Sair" Icon="{ui:SymbolIcon Symbol=SignOut24}" Margin="12,4,12,12"
++                               HorizontalAlignment="Stretch" Click="SairButton_OnClick" />
++                </StackPanel>
+             </ui:NavigationView.PaneFooter>
+         </ui:NavigationView>
+ 
+         <ui:SnackbarPresenter x:Name="RootSnackbarPresenter" Grid.Row="0" Grid.RowSpan="2" />
+         <ContentPresenter x:Name="RootContentDialogPresenter" Grid.Row="0" Grid.RowSpan="2" />
+     </Grid>
+ </ui:FluentWindow>
+diff --git a/Lojinha.App/MainWindow.xaml.cs b/Lojinha.App/MainWindow.xaml.cs
+index c86e638..fa7aab0 100644
+--- a/Lojinha.App/MainWindow.xaml.cs
++++ b/Lojinha.App/MainWindow.xaml.cs
+@@ -1,39 +1,54 @@
+ using System.Windows;
++using Lojinha.App.Services;
+ using Lojinha.App.ViewModels;
+ using Lojinha.App.Views;
++using Lojinha.Data.Models;
+ using Wpf.Ui;
+ using Wpf.Ui.Appearance;
+ using Wpf.Ui.Controls;
+ 
+ namespace Lojinha.App;
+ 
+ public partial class MainWindow : FluentWindow
+ {
+     private readonly MainViewModel _viewModel;
+     private readonly CategoriaView _categoriaView = new();
+     private readonly FornecedorView _fornecedorView = new();
+     private readonly ProdutoView _produtoView = new();
+     private readonly EstoqueView _estoqueView = new();
+     private readonly VendaView _vendaView = new();
+     private readonly UsuarioView _usuarioView = new();
+ 
+-    public MainWindow(MainViewModel viewModel, ISnackbarService snackbarService, IContentDialogService contentDialogService)
++    public event EventHandler? Sair;
++
++    public MainWindow(MainViewModel viewModel, ISnackbarService snackbarService, IContentDialogService contentDialogService, SessionService session)
+     {
+         InitializeComponent();
+ 
+         _viewModel = viewModel;
+         snackbarService.SetSnackbarPresenter(RootSnackbarPresenter);
+         contentDialogService.SetContentPresenter(RootContentDialogPresenter);
+ 
+-        CategoriasItem.IsActive = true;
+-        Loaded += (_, _) => NavigateTo("categorias");
++        var isAdmin = session.CurrentUser?.Papel == PapelUsuario.Admin;
++        if (!isAdmin)
++        {
++            CategoriasItem.Visibility = Visibility.Collapsed;
++            FornecedoresItem.Visibility = Visibility.Collapsed;
++            ProdutosItem.Visibility = Visibility.Collapsed;
++            UsuariosItem.Visibility = Visibility.Collapsed;
++        }
++
++        var tagInicial = isAdmin ? "categorias" : "vendas";
++        var itemInicial = isAdmin ? CategoriasItem : VendasItem;
++        itemInicial.IsActive = true;
++        Loaded += (_, _) => NavigateTo(tagInicial);
+     }
+ 
+     private void NavigationViewItem_OnClick(object sender, RoutedEventArgs e)
+     {
+         if (sender is not NavigationViewItem { TargetPageTag: { } tag })
+         {
+             return;
+         }
+ 
+         CategoriasItem.IsActive = tag == "categorias";
+@@ -91,11 +106,16 @@ public partial class MainWindow : FluentWindow
+                 _viewModel.Categorias.Refresh();
+                 break;
+         }
+     }
+ 
+     private void ThemeToggle_OnToggle(object sender, RoutedEventArgs e)
+     {
+         var theme = ThemeToggle.IsChecked == true ? ApplicationTheme.Dark : ApplicationTheme.Light;
+         ApplicationThemeManager.Apply(theme, WindowBackdropType.None, false);
+     }
++
++    private void SairButton_OnClick(object sender, RoutedEventArgs e)
++    {
++        Sair?.Invoke(this, EventArgs.Empty);
++    }
+ }

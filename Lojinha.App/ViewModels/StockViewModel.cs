@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Lojinha.App.Services;
 using Lojinha.Data.Models;
 using Lojinha.Services;
 using Wpf.Ui;
@@ -23,6 +24,7 @@ public partial class StockViewModel : ObservableObject
     private readonly SupplierService _supplierService;
     private readonly ISnackbarService _snackbar;
     private readonly IContentDialogService _dialogService;
+    private readonly SessionService _session;
 
     public ObservableCollection<Product> Produtos { get; } = new();
     public ObservableCollection<Supplier> Fornecedores { get; } = new();
@@ -42,13 +44,16 @@ public partial class StockViewModel : ObservableObject
     [ObservableProperty]
     private DateTime? dataValidade;
 
-    public StockViewModel(StockService stockService, ProductService productService, SupplierService supplierService, ISnackbarService snackbar, IContentDialogService dialogService)
+    public bool PodeGerenciarEstoque => _session.CurrentUser?.Papel == PapelUsuario.Admin;
+
+    public StockViewModel(StockService stockService, ProductService productService, SupplierService supplierService, ISnackbarService snackbar, IContentDialogService dialogService, SessionService session)
     {
         _stockService = stockService;
         _productService = productService;
         _supplierService = supplierService;
         _snackbar = snackbar;
         _dialogService = dialogService;
+        _session = session;
         CarregarCombos();
         AtualizarPaineis();
     }
@@ -57,6 +62,7 @@ public partial class StockViewModel : ObservableObject
     {
         CarregarCombos();
         AtualizarPaineis();
+        OnPropertyChanged(nameof(PodeGerenciarEstoque));
     }
 
     private void CarregarCombos()

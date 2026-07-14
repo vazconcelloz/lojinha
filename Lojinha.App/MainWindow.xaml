@@ -50,10 +50,20 @@
                         <ui:SymbolIcon Symbol="ShoppingBag24" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
+                <ui:NavigationViewItem x:Name="UsuariosItem" Content="Usuários" TargetPageTag="usuarios"
+                                        Click="NavigationViewItem_OnClick">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Person24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.PaneFooter>
-                <ui:ToggleSwitch x:Name="ThemeToggle" OnContent="Escuro" OffContent="Claro" Margin="12"
-                                  Checked="ThemeToggle_OnToggle" Unchecked="ThemeToggle_OnToggle" />
+                <StackPanel>
+                    <ui:ToggleSwitch x:Name="ThemeToggle" OnContent="Escuro" OffContent="Claro" Margin="12,12,12,4"
+                                      Checked="ThemeToggle_OnToggle" Unchecked="ThemeToggle_OnToggle" />
+                    <ui:Button Content="Sair" Icon="{ui:SymbolIcon Symbol=SignOut24}" Margin="12,4,12,12"
+                               HorizontalAlignment="Stretch" Click="SairButton_OnClick" />
+                </StackPanel>
             </ui:NavigationView.PaneFooter>
         </ui:NavigationView>
 

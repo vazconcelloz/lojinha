@@ -1,0 +1,13 @@
+
+Task 1: complete (commits f7cdde7..a0248e5, review clean, zero deviations)
+Task 2: complete (commits a0248e5..b453eae, review clean - 2 self-flagged concerns resolved: test-count was plan-doc error not code error (fixed separately), timing side-channel in Authenticate confirmed real but Minor/acceptable for local-desktop threat model, not fixed)
+Task 3: complete (commit 69a0774, reviewed directly by controller - trivial 2-file change, exact match to brief)
+Task 4: complete (commits 69a0774..b1529cd, review clean, zero deviations, MainWindow confirmed untouched)
+Task 5: complete (commits b1529cd..38f6786, review clean - all nav wiring points confirmed, zero role checks present as required, password-preservation contract verified against real UserService.Update signature)
+Task 6: complete (commit 3e5e84f, review clean - role gating, initial landing, Sair re-entrant flow, fresh MainWindow-per-cycle all independently verified; ShutdownMode implicit-behavior note flagged as pre-existing, non-blocking)
+Task 7: complete (commits 3e5e84f..6c246f1, review clean - all 12 brief steps verified, Refresh() re-raise for PodeCancelarVenda confirmed wired end-to-end via MainWindow navigation)
+Task 8: complete (commit 6c246f1..ca3e174, review clean - minimal exact diff, PodeGerenciarEstoque follows proven Task 7 pattern, Refresh() re-raise present)
+Task 9: complete (verification only, no commit - dotnet test 54/54 pass, dotnet build 0 errors/2 pre-existing warnings, fresh-DB smoke launch confirmed app starts and creates DB without crash, UserService.Delete last-admin guard confirmed at UserService.cs:97-99; full interactive GUI walkthrough (login/role-switch/dark-mode visual checks) not drivable in this headless environment - not pushed yet, awaiting user confirmation)
+
+Final whole-branch review (Opus, f7cdde7..817f325): Ready to merge with fixes. 1 Important finding (ShutdownMode left at default, race in Sair logout flow) - fixed in be8323d (dotnet build 0 errors, dotnet test 54/54). 3 Minor findings accepted as design tradeoffs (UI-only role enforcement matches local-desktop threat model; password strings can't be zeroed - WPF-UI PasswordBox limitation; self-delete/self-role-change edge cases fail safe, resolve on next login) - no action taken.
+Controller caught regression in the Important-finding fix itself: OnExplicitShutdown with no MainWindow.Closed handler left the process running headless when closed via X button (not Sair). Fixed in 9d43c11 (sairClicked flag gates Shutdown() call). Build+test re-verified clean.

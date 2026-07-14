@@ -15,7 +15,7 @@ public class SalesService
         _stockService = stockService;
     }
 
-    public Sale RegisterSale(IEnumerable<(int ProductId, decimal Quantidade)> itens, FormaPagamento formaPagamento)
+    public Sale RegisterSale(IEnumerable<(int ProductId, decimal Quantidade)> itens, FormaPagamento formaPagamento, string? usuarioNome = null)
     {
         var itensList = itens.ToList();
         if (itensList.Count == 0)
@@ -52,7 +52,8 @@ public class SalesService
         {
             DataHora = DateTime.Now,
             FormaPagamento = formaPagamento,
-            Cancelada = false
+            Cancelada = false,
+            UsuarioNome = usuarioNome
         };
 
         decimal total = 0;

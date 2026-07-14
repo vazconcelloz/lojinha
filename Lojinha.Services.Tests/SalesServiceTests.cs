@@ -173,4 +173,15 @@ public class SalesServiceTests : IDisposable
         Assert.Equal(sale2.Id, historico.First().Id);
         Assert.Equal(sale1.Id, historico.Last().Id);
     }
+
+    [Fact]
+    public void RegisterSale_StoresUsuarioNomeWhenProvided()
+    {
+        var product = CreateProduct();
+        _stockService.AddLot(product.Id, quantidade: 10, dataValidade: null, supplierId: null);
+
+        var sale = _service.RegisterSale(new[] { (product.Id, 1m) }, FormaPagamento.Dinheiro, "vendedor1");
+
+        Assert.Equal("vendedor1", sale.UsuarioNome);
+    }
 }

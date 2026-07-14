@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using Lojinha.App.Services;
 using Lojinha.App.ViewModels;
 using Lojinha.Data;
 using Lojinha.Services;
@@ -17,6 +18,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         var services = new ServiceCollection();
         ConfigureServices(services);
@@ -26,7 +28,37 @@ public partial class App : Application
         var context = _scope.ServiceProvider.GetRequiredService<LojinhaDbContext>();
         context.Database.Migrate();
 
+        MostrarLoginEEntrar();
+    }
+
+    private void MostrarLoginEEntrar()
+    {
+        var loginWindow = _scope!.ServiceProvider.GetRequiredService<LoginWindow>();
+        var loginOk = loginWindow.ShowDialog();
+
+        if (loginOk != true)
+        {
+            Shutdown();
+            return;
+        }
+
         var mainWindow = _scope.ServiceProvider.GetRequiredService<MainWindow>();
+        var sairClicked = false;
+        mainWindow.Sair += (_, _) =>
+        {
+            sairClicked = true;
+            mainWindow.Close();
+            _scope.ServiceProvider.GetRequiredService<SessionService>().CurrentUser = null;
+            MostrarLoginEEntrar();
+        };
+        mainWindow.Closed += (_, _) =>
+        {
+            if (!sairClicked)
+            {
+                Shutdown();
+            }
+        };
+        Current.MainWindow = mainWindow;
         mainWindow.Show();
     }
 
@@ -45,20 +77,25 @@ public partial class App : Application
 
         services.AddSingleton<ISnackbarService, SnackbarService>();
         services.AddSingleton<IContentDialogService, ContentDialogService>();
+        services.AddSingleton<SessionService>();
 
         services.AddScoped<CategoryService>();
         services.AddScoped<SupplierService>();
         services.AddScoped<ProductService>();
         services.AddScoped<StockService>();
         services.AddScoped<SalesService>();
+        services.AddScoped<UserService>();
 
         services.AddScoped<CategoryViewModel>();
         services.AddScoped<SupplierViewModel>();
         services.AddScoped<ProductViewModel>();
         services.AddScoped<StockViewModel>();
         services.AddScoped<SalesViewModel>();
+        services.AddScoped<UserViewModel>();
         services.AddScoped<MainViewModel>();
 
+        services.AddTransient<LoginViewModel>();
+        services.AddTransient<LoginWindow>();
         services.AddTransient<MainWindow>();
     }
 }

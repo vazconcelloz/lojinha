@@ -1,3 +1,19 @@
+### Task 6: `MainWindow` role gating + "Sair"
+
+**Files:**
+- Modify: `Lojinha.App/MainWindow.xaml`
+- Modify: `Lojinha.App/MainWindow.xaml.cs`
+- Modify: `Lojinha.App/App.xaml.cs`
+
+**Interfaces:**
+- Consumes: `SessionService.CurrentUser` (Task 3), `App.MostrarLoginEEntrar()` (Task 4, made re-entrant here).
+- Produces: `MainWindow.Sair` (`event EventHandler?`) — the app subscribes to this to re-show `LoginWindow` without recreating the DI scope.
+
+- [ ] **Step 1: Add role gating and the "Sair" event to `MainWindow.xaml.cs`**
+
+Replace the full contents of `Lojinha.App/MainWindow.xaml.cs` with:
+
+```csharp
 using System.Windows;
 using Lojinha.App.Services;
 using Lojinha.App.ViewModels;
@@ -119,3 +135,80 @@ public partial class MainWindow : FluentWindow
         Sair?.Invoke(this, EventArgs.Empty);
     }
 }
+```
+
+- [ ] **Step 2: Add the "Sair" button to `MainWindow.xaml`**
+
+In `Lojinha.App/MainWindow.xaml`, replace the `<ui:NavigationView.PaneFooter>` block:
+
+```xml
+            <ui:NavigationView.PaneFooter>
+                <ui:ToggleSwitch x:Name="ThemeToggle" OnContent="Escuro" OffContent="Claro" Margin="12"
+                                  Checked="ThemeToggle_OnToggle" Unchecked="ThemeToggle_OnToggle" />
+            </ui:NavigationView.PaneFooter>
+```
+
+with:
+
+```xml
+            <ui:NavigationView.PaneFooter>
+                <StackPanel>
+                    <ui:ToggleSwitch x:Name="ThemeToggle" OnContent="Escuro" OffContent="Claro" Margin="12,12,12,4"
+                                      Checked="ThemeToggle_OnToggle" Unchecked="ThemeToggle_OnToggle" />
+                    <ui:Button Content="Sair" Icon="{ui:SymbolIcon Symbol=SignOut24}" Margin="12,4,12,12"
+                               HorizontalAlignment="Stretch" Click="SairButton_OnClick" />
+                </StackPanel>
+            </ui:NavigationView.PaneFooter>
+```
+
+- [ ] **Step 3: Make `MostrarLoginEEntrar` re-entrant and wire "Sair" to it**
+
+In `Lojinha.App/App.xaml.cs`, replace the `MostrarLoginEEntrar` method:
+
+```csharp
+    private void MostrarLoginEEntrar()
+    {
+        var loginWindow = _scope!.ServiceProvider.GetRequiredService<LoginWindow>();
+        var loginOk = loginWindow.ShowDialog();
+
+        if (loginOk != true)
+        {
+            Shutdown();
+            return;
+        }
+
+        var mainWindow = _scope.ServiceProvider.GetRequiredService<MainWindow>();
+        mainWindow.Sair += (_, _) =>
+        {
+            mainWindow.Close();
+            _scope.ServiceProvider.GetRequiredService<SessionService>().CurrentUser = null;
+            MostrarLoginEEntrar();
+        };
+        Current.MainWindow = mainWindow;
+        mainWindow.Show();
+    }
+```
+
+- [ ] **Step 4: Build**
+
+Run: `dotnet build`
+Expected: `Compilação com êxito. 0 Erro(s)`
+
+- [ ] **Step 5: Run the full test suite**
+
+Run: `dotnet test`
+Expected: PASS, 53 tests total.
+
+- [ ] **Step 6: Manual smoke check**
+
+Run: `dotnet run --project Lojinha.App`, log in as the Admin created earlier. Expected: sidebar shows all 6 items (Admin sees everything). Click "Sair" — the window closes and the login screen reappears (app doesn't exit). Log back in as the same Admin — confirm the app returns to normal. Then, from the Usuários screen, create a Vendedor account; click "Sair"; log in as that Vendedor. Expected: sidebar shows only "Vendas" and "Estoque" (Categorias/Fornecedores/Produtos/Usuários are gone), and the app lands on the Vendas screen by default (not Categorias, which this user can't see).
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add Lojinha.App/MainWindow.xaml Lojinha.App/MainWindow.xaml.cs Lojinha.App/App.xaml.cs
+git commit -m "feat: add role-based sidebar gating and Sair (logout without restart)"
+```
+
+---
+
