@@ -9,6 +9,8 @@ public class SaleItem
     public Product? Product { get; set; }
     public decimal Quantidade { get; set; }
     public decimal PrecoUnitario { get; set; }
+    public decimal DescontoValor { get; set; }
 
     public decimal Subtotal => Quantidade * PrecoUnitario;
+    public decimal SubtotalComDesconto => Subtotal - DescontoValor;
 }

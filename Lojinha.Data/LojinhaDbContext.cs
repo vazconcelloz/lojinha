@@ -73,6 +73,22 @@ public class LojinhaDbContext : DbContext
             .Property(i => i.PrecoUnitario)
             .HasPrecision(10, 2);
 
+        modelBuilder.Entity<SaleItem>()
+            .Property(i => i.DescontoValor)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<Sale>()
+            .Property(s => s.DescontoValor)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<Sale>()
+            .Property(s => s.ValorRecebido)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<Sale>()
+            .Property(s => s.Troco)
+            .HasPrecision(10, 2);
+
         modelBuilder.Entity<Sale>()
             .HasMany(s => s.Items)
             .WithOne(i => i.Sale)
