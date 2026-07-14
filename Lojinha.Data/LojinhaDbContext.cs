@@ -12,6 +12,8 @@ public class LojinhaDbContext : DbContext
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleItem> SaleItems => Set<SaleItem>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<CaixaSessao> CaixaSessoes => Set<CaixaSessao>();
+    public DbSet<MovimentoCaixa> MovimentosCaixa => Set<MovimentoCaixa>();
 
     public LojinhaDbContext(DbContextOptions<LojinhaDbContext> options) : base(options)
     {
@@ -104,5 +106,31 @@ public class LojinhaDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(u => u.NomeUsuario)
             .IsUnique();
+
+        modelBuilder.Entity<CaixaSessao>()
+            .Property(c => c.ValorAbertura)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<CaixaSessao>()
+            .Property(c => c.ValorContado)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<CaixaSessao>()
+            .Property(c => c.ValorEsperado)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<CaixaSessao>()
+            .Property(c => c.Diferenca)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<MovimentoCaixa>()
+            .Property(m => m.Valor)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<MovimentoCaixa>()
+            .HasOne(m => m.CaixaSessao)
+            .WithMany(c => c.Movimentos)
+            .HasForeignKey(m => m.CaixaSessaoId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
