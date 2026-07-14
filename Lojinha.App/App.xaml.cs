@@ -85,6 +85,7 @@ public partial class App : Application
         services.AddScoped<StockService>();
         services.AddScoped<SalesService>();
         services.AddScoped<UserService>();
+        services.AddScoped<IAuthorizationService, AuthorizationService>();
 
         services.AddScoped<CategoryViewModel>();
         services.AddScoped<SupplierViewModel>();
@@ -96,6 +97,8 @@ public partial class App : Application
 
         services.AddTransient<LoginViewModel>();
         services.AddTransient<LoginWindow>();
+        services.AddTransient<AutorizacaoViewModel>();
+        services.AddTransient<AutorizacaoWindow>();
         services.AddTransient<MainWindow>();
     }
 }
