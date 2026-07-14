@@ -85,12 +85,14 @@ public partial class App : Application
         services.AddScoped<StockService>();
         services.AddScoped<SalesService>();
         services.AddScoped<UserService>();
+        services.AddScoped<CaixaService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
 
         services.AddScoped<CategoryViewModel>();
         services.AddScoped<SupplierViewModel>();
         services.AddScoped<ProductViewModel>();
         services.AddScoped<StockViewModel>();
+        services.AddScoped<TurnoViewModel>();
         services.AddScoped<SalesViewModel>();
         services.AddScoped<UserViewModel>();
         services.AddScoped<MainViewModel>();
