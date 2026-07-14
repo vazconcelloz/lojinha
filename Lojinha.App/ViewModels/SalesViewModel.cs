@@ -88,6 +88,8 @@ public partial class SalesViewModel : ObservableObject
     private readonly SessionService _session;
     private readonly IAuthorizationService _authorizationService;
 
+    public TurnoViewModel Turno { get; }
+
     public ObservableCollection<Product> Produtos { get; } = new();
     public ObservableCollection<ItemCarrinho> Carrinho { get; } = new();
     public ObservableCollection<VendaHistoricoItem> Historico { get; } = new();
@@ -116,7 +118,7 @@ public partial class SalesViewModel : ObservableObject
     private decimal valorRecebido;
 
     [ObservableProperty]
-    private bool mostrandoHistorico;
+    private AbaCaixa abaAtiva = AbaCaixa.Caixa;
 
     public decimal CarrinhoSubtotal => Carrinho.Sum(i => i.SubtotalComDesconto);
 
@@ -132,7 +134,7 @@ public partial class SalesViewModel : ObservableObject
 
     public bool PodeCancelarVenda => _session.CurrentUser?.Papel == PapelUsuario.Admin;
 
-    public SalesViewModel(SalesService salesService, ProductService productService, ISnackbarService snackbar, IContentDialogService dialogService, SessionService session, IAuthorizationService authorizationService)
+    public SalesViewModel(SalesService salesService, ProductService productService, ISnackbarService snackbar, IContentDialogService dialogService, SessionService session, IAuthorizationService authorizationService, TurnoViewModel turno)
     {
         _salesService = salesService;
         _productService = productService;
@@ -140,6 +142,7 @@ public partial class SalesViewModel : ObservableObject
         _dialogService = dialogService;
         _session = session;
         _authorizationService = authorizationService;
+        Turno = turno;
         Carrinho.CollectionChanged += OnCarrinhoChanged;
         CarregarProdutos();
         CarregarHistorico();
@@ -211,6 +214,7 @@ public partial class SalesViewModel : ObservableObject
     {
         CarregarProdutos();
         CarregarHistorico();
+        Turno.Refresh();
         OnPropertyChanged(nameof(PodeCancelarVenda));
     }
 
@@ -305,18 +309,31 @@ public partial class SalesViewModel : ObservableObject
     [RelayCommand]
     private void MostrarCaixa()
     {
-        MostrandoHistorico = false;
+        AbaAtiva = AbaCaixa.Caixa;
     }
 
     [RelayCommand]
     private void MostrarHistorico()
     {
-        MostrandoHistorico = true;
+        AbaAtiva = AbaCaixa.Historico;
+    }
+
+    [RelayCommand]
+    private void MostrarTurno()
+    {
+        AbaAtiva = AbaCaixa.Turno;
+        Turno.Refresh();
     }
 
     [RelayCommand]
     private void FinalizarVenda()
     {
+        if (!Turno.SessaoAberta)
+        {
+            _snackbar.Show("Erro", "Abra o caixa antes de registrar uma venda.", ControlAppearance.Danger);
+            return;
+        }
+
         if (Carrinho.Count == 0)
         {
             _snackbar.Show("Erro", "Adicione ao menos um item à venda.", ControlAppearance.Danger);
