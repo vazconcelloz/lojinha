@@ -43,11 +43,20 @@ public partial class App : Application
         }
 
         var mainWindow = _scope.ServiceProvider.GetRequiredService<MainWindow>();
+        var sairClicked = false;
         mainWindow.Sair += (_, _) =>
         {
+            sairClicked = true;
             mainWindow.Close();
             _scope.ServiceProvider.GetRequiredService<SessionService>().CurrentUser = null;
             MostrarLoginEEntrar();
+        };
+        mainWindow.Closed += (_, _) =>
+        {
+            if (!sairClicked)
+            {
+                Shutdown();
+            }
         };
         Current.MainWindow = mainWindow;
         mainWindow.Show();
