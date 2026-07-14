@@ -44,7 +44,7 @@
                         <ui:SymbolIcon Symbol="BoxMultiple24" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
-                <ui:NavigationViewItem x:Name="VendasItem" Content="Vendas" TargetPageTag="vendas"
+                <ui:NavigationViewItem x:Name="VendasItem" Content="Caixa" TargetPageTag="vendas"
                                         Click="NavigationViewItem_OnClick">
                     <ui:NavigationViewItem.Icon>
                         <ui:SymbolIcon Symbol="ShoppingBag24" />
