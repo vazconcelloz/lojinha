@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         mc:Ignorable="d"
-        Title="Lojinha" Height="650" Width="1000"
+        Title="Conveniência e Padaria" Height="650" Width="1000"
+        Icon="/Assets/logo-nipon.png"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="None">
@@ -15,7 +16,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="Lojinha" />
+        <ui:TitleBar Grid.Row="0" Title="Conveniência e Padaria" />
 
         <ui:NavigationView x:Name="RootNavigation" Grid.Row="1" PaneDisplayMode="Left"
                             OpenPaneLength="200" IsBackButtonVisible="Collapsed">

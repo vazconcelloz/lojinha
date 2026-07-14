@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         mc:Ignorable="d"
-        Title="Lojinha" Height="320" Width="380"
+        Title="Conveniência e Padaria" Height="320" Width="380"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ExtendsContentIntoTitleBar="True"
@@ -16,7 +16,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="Lojinha" />
+        <ui:TitleBar Grid.Row="0" Title="Conveniência e Padaria" />
 
         <StackPanel Grid.Row="1" VerticalAlignment="Center">
             <TextBlock Text="Autorização do administrador"

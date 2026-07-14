@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media;
 using Lojinha.App.Services;
 using Lojinha.App.ViewModels;
 using Lojinha.App.Views;
@@ -112,6 +113,7 @@ public partial class MainWindow : FluentWindow
     {
         var theme = ThemeToggle.IsChecked == true ? ApplicationTheme.Dark : ApplicationTheme.Light;
         ApplicationThemeManager.Apply(theme, WindowBackdropType.None, false);
+        ApplicationAccentColorManager.Apply(Color.FromRgb(0xD7, 0x00, 0x00), theme);
     }
 
     private void SairButton_OnClick(object sender, RoutedEventArgs e)

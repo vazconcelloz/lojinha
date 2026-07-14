@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Media;
 using Lojinha.App.Services;
 using Lojinha.App.ViewModels;
 using Lojinha.Data;
@@ -7,6 +8,7 @@ using Lojinha.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Wpf.Ui;
+using Wpf.Ui.Appearance;
 
 namespace Lojinha.App;
 
@@ -19,6 +21,8 @@ public partial class App : Application
     {
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        ApplicationAccentColorManager.Apply(Color.FromRgb(0xD7, 0x00, 0x00), ApplicationTheme.Light);
 
         var services = new ServiceCollection();
         ConfigureServices(services);
