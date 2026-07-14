@@ -18,6 +18,9 @@
         </StackPanel>
 
         <Grid Grid.Row="1" Visibility="{Binding AbaAtiva, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Caixa}">
+            <Grid.InputBindings>
+                <KeyBinding Key="F2" Command="{Binding FinalizarVendaCommand}" />
+            </Grid.InputBindings>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="1*" />
