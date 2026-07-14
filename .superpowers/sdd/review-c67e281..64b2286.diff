@@ -1,0 +1,71 @@
+# Review package: c67e281..64b2286
+
+## Commits
+64b2286 feat: add Caixa/Histórico tab-toggle state to SalesViewModel
+
+## Files changed
+ Lojinha.App/ViewModels/SalesViewModel.cs | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+## Diff
+diff --git a/Lojinha.App/ViewModels/SalesViewModel.cs b/Lojinha.App/ViewModels/SalesViewModel.cs
+index 2b871f2..dd2f9ef 100644
+--- a/Lojinha.App/ViewModels/SalesViewModel.cs
++++ b/Lojinha.App/ViewModels/SalesViewModel.cs
+@@ -108,20 +108,23 @@ public partial class SalesViewModel : ObservableObject
+ 
+     [ObservableProperty]
+     private TipoDesconto tipoDescontoVenda = TipoDesconto.Valor;
+ 
+     [ObservableProperty]
+     private decimal descontoVendaEntrada;
+ 
+     [ObservableProperty]
+     private decimal valorRecebido;
+ 
++    [ObservableProperty]
++    private bool mostrandoHistorico;
++
+     public decimal CarrinhoSubtotal => Carrinho.Sum(i => i.SubtotalComDesconto);
+ 
+     public decimal DescontoVendaAplicado => TipoDescontoVenda == TipoDesconto.Percentual
+         ? CarrinhoSubtotal * DescontoVendaEntrada / 100
+         : DescontoVendaEntrada;
+ 
+     public decimal Total => CarrinhoSubtotal - DescontoVendaAplicado;
+ 
+     public bool EhDinheiro => FormaPagamentoSelecionada == FormaPagamento.Dinheiro;
+ 
+@@ -292,20 +295,32 @@ public partial class SalesViewModel : ObservableObject
+         TermoBusca = string.Empty;
+         Quantidade = 0;
+     }
+ 
+     [RelayCommand]
+     private void RemoverDoCarrinho(ItemCarrinho item)
+     {
+         Carrinho.Remove(item);
+     }
+ 
++    [RelayCommand]
++    private void MostrarCaixa()
++    {
++        MostrandoHistorico = false;
++    }
++
++    [RelayCommand]
++    private void MostrarHistorico()
++    {
++        MostrandoHistorico = true;
++    }
++
+     [RelayCommand]
+     private void FinalizarVenda()
+     {
+         if (Carrinho.Count == 0)
+         {
+             _snackbar.Show("Erro", "Adicione ao menos um item à venda.", ControlAppearance.Danger);
+             return;
+         }
+ 
+         var temDesconto = Carrinho.Any(i => i.DescontoAplicado > 0) || DescontoVendaAplicado > 0;
